@@ -1,0 +1,11 @@
+{
+  "name": "@somethings-ui/native",
+  "version": "0.0.1",
+  "main": "./src/index.tsx",
+  "types": "./src/index.tsx",
+  "sideEffects": false,
+  "license": "MIT",
+  "files": [
+    "src/**/*"
+  ]
+}

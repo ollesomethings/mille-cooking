@@ -1,0 +1,448 @@
+export type ScribbleKey =
+  | 'blueScribble'
+  | 'blueSwoosh'
+  | 'blueSwooshSmall'
+  | 'blushHighlight'
+  | 'fuchsiaHighlight'
+  | 'greenSwoosh'
+  | 'limeHighlight'
+  | 'limeSwoosh'
+  | 'orangeCloud'
+  | 'orangeStarburst'
+  | 'periwinkleHighlight'
+  | 'pinkLoops'
+  | 'pinkOval'
+  | 'pinkStarburst'
+  | 'purpleSwoosh'
+  | 'skyHighlight'
+  | 'sunshineHighlight'
+  | 'violetHighlight'
+  | 'yellowLoops'
+  | 'yellowOval'
+  | 'yellowSpiral'
+  | 'yellowSwoosh';
+
+export interface SwapPromptBase {
+  id: string;
+  title: string;
+  subtitle: string;
+  backgroundColor: string;
+  category: 'Photo Swap';
+  scribbleKey: ScribbleKey;
+  highlightKey: ScribbleKey;
+}
+
+export const SWAP_PROMPTS_DATA: SwapPromptBase[] = [
+  {
+    id: 'me-when-little',
+    title: 'me when i was little',
+    subtitle: 'An old photo that still makes you smile.',
+    backgroundColor: '#B164FF',
+    category: 'Photo Swap',
+    scribbleKey: 'yellowSwoosh',
+    highlightKey: 'violetHighlight',
+  },
+  {
+    id: 'first-pic-camera-roll',
+    title: 'first pic in my camera roll',
+    subtitle: "Let's go back to the beginning.",
+    backgroundColor: '#71E0FF',
+    category: 'Photo Swap',
+    scribbleKey: 'orangeStarburst',
+    highlightKey: 'skyHighlight',
+  },
+  {
+    id: 'something-from-room',
+    title: 'something from my room',
+    subtitle: 'Whatever feels special to you.',
+    backgroundColor: '#FFE81F',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkLoops',
+    highlightKey: 'sunshineHighlight',
+  },
+  {
+    id: 'pet-takeover',
+    title: 'pet takeover',
+    subtitle:
+      "Your pet, your dream pet, or the funniest animal pic you've got.",
+    backgroundColor: '#FFA8B2',
+    category: 'Photo Swap',
+    scribbleKey: 'limeSwoosh',
+    highlightKey: 'blushHighlight',
+  },
+  {
+    id: 'proud-moment',
+    title: 'a proud moment',
+    subtitle: "Big or small — something you're proud of.",
+    backgroundColor: '#7178FF',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkStarburst',
+    highlightKey: 'periwinkleHighlight',
+  },
+  {
+    id: 'take-me-back',
+    title: 'take me back',
+    subtitle: 'A moment you wish you could rewind to.',
+    backgroundColor: '#71E0FF',
+    category: 'Photo Swap',
+    scribbleKey: 'yellowSpiral',
+    highlightKey: 'skyHighlight',
+  },
+  {
+    id: 'favorite-place',
+    title: 'favorite place',
+    subtitle: "Where you'd teleport to if you could.",
+    backgroundColor: '#C2DF4F',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkOval',
+    highlightKey: 'limeHighlight',
+  },
+  {
+    id: 'something-ive-made',
+    title: "something i've made",
+    subtitle: 'Art, food, poetry — anything counts.',
+    backgroundColor: '#FF83FE',
+    category: 'Photo Swap',
+    scribbleKey: 'yellowLoops',
+    highlightKey: 'fuchsiaHighlight',
+  },
+  {
+    id: 'current-vibe',
+    title: 'my current vibe',
+    subtitle: "A photo that matches how you're feeling.",
+    backgroundColor: '#B164FF',
+    category: 'Photo Swap',
+    scribbleKey: 'blueSwoosh',
+    highlightKey: 'violetHighlight',
+  },
+  {
+    id: 'celebrity-crush',
+    title: 'celebrity crush',
+    subtitle: 'Past or present — no judgment.',
+    backgroundColor: '#FFA8B2',
+    category: 'Photo Swap',
+    scribbleKey: 'orangeCloud',
+    highlightKey: 'blushHighlight',
+  },
+];
+
+/**
+ * Pool of prompts for the "Random prompt" surprise swap flow.
+ */
+export const RANDOM_SWAP_PROMPTS_DATA: SwapPromptBase[] = [
+  {
+    id: 'random-funny-moment',
+    title: 'A funny moment from this week',
+    subtitle: '',
+    backgroundColor: '#FF83FE',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkLoops',
+    highlightKey: 'fuchsiaHighlight',
+  },
+  {
+    id: 'random-made-me-smile',
+    title: 'Something that made me smile today',
+    subtitle: '',
+    backgroundColor: '#B164FF',
+    category: 'Photo Swap',
+    scribbleKey: 'purpleSwoosh',
+    highlightKey: 'violetHighlight',
+  },
+  {
+    id: 'random-comfort-food',
+    title: 'My go-to comfort food',
+    subtitle: '',
+    backgroundColor: '#71E0FF',
+    category: 'Photo Swap',
+    scribbleKey: 'blueSwoosh',
+    highlightKey: 'skyHighlight',
+  },
+  {
+    id: 'random-window-view',
+    title: 'The view from my window right now',
+    subtitle: '',
+    backgroundColor: '#FFE81F',
+    category: 'Photo Swap',
+    scribbleKey: 'yellowSwoosh',
+    highlightKey: 'sunshineHighlight',
+  },
+  {
+    id: 'random-carry-everywhere',
+    title: 'Something I carry everywhere',
+    subtitle: '',
+    backgroundColor: '#FFA8B2',
+    category: 'Photo Swap',
+    scribbleKey: 'limeSwoosh',
+    highlightKey: 'blushHighlight',
+  },
+  {
+    id: 'random-mood-color',
+    title: 'A color that matches my mood',
+    subtitle: '',
+    backgroundColor: '#7178FF',
+    category: 'Photo Swap',
+    scribbleKey: 'yellowLoops',
+    highlightKey: 'periwinkleHighlight',
+  },
+  {
+    id: 'random-last-photo',
+    title: 'The last photo I took',
+    subtitle: '',
+    backgroundColor: '#C2DF4F',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkOval',
+    highlightKey: 'limeHighlight',
+  },
+  {
+    id: 'random-inspires-me',
+    title: 'Something that inspires me',
+    subtitle: '',
+    backgroundColor: '#FF83FE',
+    category: 'Photo Swap',
+    scribbleKey: 'orangeStarburst',
+    highlightKey: 'fuchsiaHighlight',
+  },
+  {
+    id: 'random-favorite-corner',
+    title: 'My favorite corner of my space',
+    subtitle: '',
+    backgroundColor: '#B164FF',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkStarburst',
+    highlightKey: 'violetHighlight',
+  },
+  {
+    id: 'random-made-recently',
+    title: 'Something I made recently',
+    subtitle: '',
+    backgroundColor: '#71E0FF',
+    category: 'Photo Swap',
+    scribbleKey: 'yellowSpiral',
+    highlightKey: 'skyHighlight',
+  },
+  {
+    id: 'random-texture-love',
+    title: 'A texture I love',
+    subtitle: '',
+    backgroundColor: '#FFE81F',
+    category: 'Photo Swap',
+    scribbleKey: 'orangeCloud',
+    highlightKey: 'sunshineHighlight',
+  },
+  {
+    id: 'random-old-and-new',
+    title: 'Something old and something new',
+    subtitle: '',
+    backgroundColor: '#FFA8B2',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkLoops',
+    highlightKey: 'blushHighlight',
+  },
+  {
+    id: 'random-my-morning',
+    title: 'What morning looks like for me',
+    subtitle: '',
+    backgroundColor: '#7178FF',
+    category: 'Photo Swap',
+    scribbleKey: 'blueSwoosh',
+    highlightKey: 'periwinkleHighlight',
+  },
+  {
+    id: 'random-read-or-playlist',
+    title: 'My current read or playlist',
+    subtitle: '',
+    backgroundColor: '#C2DF4F',
+    category: 'Photo Swap',
+    scribbleKey: 'yellowSwoosh',
+    highlightKey: 'limeHighlight',
+  },
+  {
+    id: 'random-hidden-detail',
+    title: "Something most people wouldn't notice",
+    subtitle: '',
+    backgroundColor: '#FF83FE',
+    category: 'Photo Swap',
+    scribbleKey: 'limeSwoosh',
+    highlightKey: 'fuchsiaHighlight',
+  },
+  {
+    id: 'random-feels-like-home',
+    title: 'A place that feels like home',
+    subtitle: '',
+    backgroundColor: '#B164FF',
+    category: 'Photo Swap',
+    scribbleKey: 'purpleSwoosh',
+    highlightKey: 'violetHighlight',
+  },
+  {
+    id: 'random-proud-of',
+    title: "Something I'm proud of",
+    subtitle: '',
+    backgroundColor: '#71E0FF',
+    category: 'Photo Swap',
+    scribbleKey: 'yellowLoops',
+    highlightKey: 'skyHighlight',
+  },
+  {
+    id: 'random-happy-place',
+    title: 'My happy place',
+    subtitle: '',
+    backgroundColor: '#FFE81F',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkOval',
+    highlightKey: 'sunshineHighlight',
+  },
+  {
+    id: 'random-small-joy',
+    title: 'A small thing that brings me joy',
+    subtitle: '',
+    backgroundColor: '#FFA8B2',
+    category: 'Photo Swap',
+    scribbleKey: 'orangeStarburst',
+    highlightKey: 'blushHighlight',
+  },
+  {
+    id: 'random-learning-now',
+    title: "Something I'm learning right now",
+    subtitle: '',
+    backgroundColor: '#7178FF',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkStarburst',
+    highlightKey: 'periwinkleHighlight',
+  },
+  {
+    id: 'random-sky-right-now',
+    title: 'The sky right now',
+    subtitle: '',
+    backgroundColor: '#C2DF4F',
+    category: 'Photo Swap',
+    scribbleKey: 'yellowSpiral',
+    highlightKey: 'limeHighlight',
+  },
+  {
+    id: 'random-favorite-snack',
+    title: 'My favorite snack',
+    subtitle: '',
+    backgroundColor: '#FF83FE',
+    category: 'Photo Swap',
+    scribbleKey: 'orangeCloud',
+    highlightKey: 'fuchsiaHighlight',
+  },
+  {
+    id: 'random-friend-reminder',
+    title: 'Something that reminds me of a friend',
+    subtitle: '',
+    backgroundColor: '#B164FF',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkLoops',
+    highlightKey: 'violetHighlight',
+  },
+  {
+    id: 'random-moment-of-calm',
+    title: 'A moment of calm',
+    subtitle: '',
+    backgroundColor: '#71E0FF',
+    category: 'Photo Swap',
+    scribbleKey: 'blueSwoosh',
+    highlightKey: 'skyHighlight',
+  },
+  {
+    id: 'random-messy-real',
+    title: 'Something messy and real',
+    subtitle: '',
+    backgroundColor: '#FFE81F',
+    category: 'Photo Swap',
+    scribbleKey: 'limeSwoosh',
+    highlightKey: 'sunshineHighlight',
+  },
+  {
+    id: 'random-look-up',
+    title: 'What I see when I look up',
+    subtitle: '',
+    backgroundColor: '#FFA8B2',
+    category: 'Photo Swap',
+    scribbleKey: 'purpleSwoosh',
+    highlightKey: 'blushHighlight',
+  },
+  {
+    id: 'random-current-vibe',
+    title: 'My current vibe in one photo',
+    subtitle: '',
+    backgroundColor: '#7178FF',
+    category: 'Photo Swap',
+    scribbleKey: 'yellowLoops',
+    highlightKey: 'periwinkleHighlight',
+  },
+  {
+    id: 'random-want-to-remember',
+    title: 'Something I want to remember',
+    subtitle: '',
+    backgroundColor: '#C2DF4F',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkOval',
+    highlightKey: 'limeHighlight',
+  },
+  {
+    id: 'random-drawn-to-color',
+    title: "A color I'm drawn to lately",
+    subtitle: '',
+    backgroundColor: '#FF83FE',
+    category: 'Photo Swap',
+    scribbleKey: 'orangeStarburst',
+    highlightKey: 'fuchsiaHighlight',
+  },
+  {
+    id: 'random-best-part-of-day',
+    title: 'The best part of my day so far',
+    subtitle: '',
+    backgroundColor: '#B164FF',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkStarburst',
+    highlightKey: 'violetHighlight',
+  },
+  {
+    id: 'random-show-a-stranger',
+    title: "Something I'd show a stranger about my life",
+    subtitle: '',
+    backgroundColor: '#71E0FF',
+    category: 'Photo Swap',
+    scribbleKey: 'yellowSpiral',
+    highlightKey: 'skyHighlight',
+  },
+  {
+    id: 'random-tells-a-story',
+    title: 'A photo that tells a story',
+    subtitle: '',
+    backgroundColor: '#FFE81F',
+    category: 'Photo Swap',
+    scribbleKey: 'orangeCloud',
+    highlightKey: 'sunshineHighlight',
+  },
+  {
+    id: 'random-something-cozy',
+    title: 'Something cozy',
+    subtitle: '',
+    backgroundColor: '#FFA8B2',
+    category: 'Photo Swap',
+    scribbleKey: 'pinkLoops',
+    highlightKey: 'blushHighlight',
+  },
+  {
+    id: 'random-my-workspace',
+    title: 'My workspace right now',
+    subtitle: '',
+    backgroundColor: '#7178FF',
+    category: 'Photo Swap',
+    scribbleKey: 'blueSwoosh',
+    highlightKey: 'periwinkleHighlight',
+  },
+  {
+    id: 'random-little-adventure',
+    title: 'A little adventure from today',
+    subtitle: '',
+    backgroundColor: '#C2DF4F',
+    category: 'Photo Swap',
+    scribbleKey: 'yellowSwoosh',
+    highlightKey: 'limeHighlight',
+  },
+];

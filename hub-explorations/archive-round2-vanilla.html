@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hub layout exploration — MMT-0</title>
+<style>
+  /* ============ exploration chrome (not the app) ============ */
+  :root {
+    --accent: #4f46e5;
+    --accent-soft: #eef2ff;
+    --ink: #1a1a1a;
+    --ink-2: #555;
+    --ink-3: #6d6d6d;
+    --line: #e4e4e4;
+    --paper: #fff;
+    --bg: #f3f3f1;
+    --radius: 14px;
+    font-size: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--ink);
+    padding: 32px 24px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page-head { max-width: 1400px; margin: 0 auto 28px; }
+  .page-head h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .page-head p { color: var(--ink-2); font-size: 14px; margin-top: 6px; max-width: 70ch; }
+  .page-head .tag {
+    display: inline-block; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--accent); background: var(--accent-soft);
+    padding: 3px 8px; border-radius: 4px; margin-bottom: 10px;
+  }
+  .concepts {
+    max-width: 1400px; margin: 0 auto;
+    display: flex; flex-wrap: wrap; gap: 40px; justify-content: center;
+    align-items: flex-start;
+  }
+  .concept { width: 402px; display: flex; flex-direction: column; gap: 12px; }
+  .concept-head h2 { font-size: 15px; font-weight: 700; }
+  .concept-head .sub { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .seg { display: flex; background: #e8e8e6; border-radius: 9px; padding: 3px; }
+  .seg button {
+    border: 0; background: transparent; font: inherit; font-size: 12.5px; font-weight: 600;
+    color: var(--ink-2); padding: 6px 12px; border-radius: 7px; cursor: pointer;
+  }
+  .seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .seg-label { font-size: 11px; color: var(--ink-3); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+
+  .commentary {
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-2);
+    background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px;
+  }
+  .commentary strong { color: var(--ink); }
+  .flag {
+    margin-top: 10px; padding: 10px 12px; border-radius: 8px;
+    background: #fff7ed; border: 1px solid #fed7aa; font-size: 12.5px; color: #7c4a12;
+  }
+  .flag b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+
+  /* ============ phone frame ============ */
+  .phone {
+    width: 390px; height: 844px; background: var(--paper);
+    border-radius: 44px; border: 1px solid #d8d8d4;
+    box-shadow: 0 0 0 8px #1d1d1f, 0 24px 48px rgba(0,0,0,.18);
+    overflow: hidden; position: relative; margin: 8px 6px;
+    user-select: none; -webkit-user-select: none;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 30;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 28px; font-size: 13px; font-weight: 600; pointer-events: none;
+  }
+  .screen { position: absolute; inset: 0; overflow: hidden; }
+
+  .placeholder-screen {
+    height: 100%; display: flex; align-items: center; justify-content: center;
+    color: var(--ink-3); font-size: 14px; text-align: center; padding: 40px;
+    background: repeating-linear-gradient(45deg, #fafafa, #fafafa 12px, #f4f4f2 12px, #f4f4f2 24px);
+  }
+
+  /* ============ shared in-app bits ============ */
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 999px; background: #f0f0ee; color: var(--ink-2);
+  }
+  .chip.mentor { background: var(--accent-soft); color: var(--accent); }
+  .chip.keeps { background: #ecfdf3; color: #157347; text-transform: none; letter-spacing: 0; font-weight: 600; }
+  .chip.locked { background: #f0f0ee; color: var(--ink-3); }
+  .imgbox {
+    background: repeating-linear-gradient(45deg, #ececea, #ececea 10px, #e2e2e0 10px, #e2e2e0 20px);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    color: #9a9a98; font-size: 12px;
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 48px; padding: 0 22px; border-radius: 12px; border: 0;
+    font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+    background: var(--ink); color: #fff; white-space: nowrap;
+  }
+  .btn.primary { background: var(--accent); }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+
+  /* ============ detail sheet ============ */
+  .sheet-scrim {
+    position: absolute; inset: 0; background: rgba(0,0,0,.35); z-index: 40;
+    opacity: 0; pointer-events: none; transition: opacity .25s;
+  }
+  .sheet-scrim.open { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 41;
+    background: #fff; border-radius: 24px 24px 0 0; padding: 12px 22px 34px;
+    max-height: 78%; overflow-y: auto;
+    transform: translateY(105%); transition: transform .3s cubic-bezier(.32,.72,.28,1);
+  }
+  .sheet.open { transform: translateY(0); }
+  .sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: #d9d9d7; margin: 0 auto 14px; }
+  .sheet .sheet-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .sheet h3 { font-size: 20px; letter-spacing: -0.01em; line-height: 1.25; margin-bottom: 8px; }
+  .sheet .sheet-body { font-size: 14.5px; color: var(--ink-2); line-height: 1.5; margin-bottom: 16px; }
+  .sheet .tool-placeholder {
+    border: 1.5px dashed #cfcfcd; border-radius: 12px; padding: 18px; font-size: 13px;
+    color: var(--ink-3); line-height: 1.5; margin-bottom: 18px; background: #fafaf9;
+  }
+  .sheet .tool-placeholder b { color: var(--ink-2); }
+
+  /* ============ concept 1: player ============ */
+  .player { height: 100%; display: flex; flex-direction: column; background: #141416; color: #fff; }
+  .player-top {
+    padding: 10px 16px; display: flex; gap: 8px; overflow-x: auto; flex: none;
+    scrollbar-width: none;
+  }
+  .player-top::-webkit-scrollbar { display: none; }
+  .pfilter {
+    flex: none; border: 1px solid rgba(255,255,255,.22); background: transparent;
+    color: rgba(255,255,255,.75); font: inherit; font-size: 13px; font-weight: 600;
+    padding: 10px 16px; border-radius: 999px; cursor: pointer; min-height: 44px;
+  }
+  .pfilter.on { background: #fff; color: #141416; border-color: #fff; }
+  .player-viewport { flex: 1; position: relative; overflow: hidden; touch-action: none; }
+  .player-track { position: absolute; inset: 0; transition: transform .35s cubic-bezier(.3,.7,.25,1); }
+  .pcard {
+    position: absolute; left: 0; right: 0; height: 100%;
+    padding: 26px 24px 30px; display: flex; flex-direction: column; cursor: pointer;
+  }
+  .pcard-inner {
+    flex: 1; border-radius: 24px; padding: 26px 24px; display: flex; flex-direction: column;
+    background: #232327; overflow: hidden; position: relative;
+  }
+  .pcard.tone-mentor .pcard-inner { background: linear-gradient(160deg, #2b2b63, #1d1d3f); }
+  .pcard.tone-tool .pcard-inner { background: linear-gradient(160deg, #21372e, #17251f); }
+  .pcard.tone-foryou .pcard-inner { background: linear-gradient(160deg, #3a3a3e, #232327); }
+  .pcard.tone-system .pcard-inner { background: #1c1c1f; border: 1px dashed rgba(255,255,255,.25); }
+  .pcard.is-done .pcard-inner { opacity: .72; }
+  .pcard .ptype { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: auto; }
+  .pcard .ptype .chip { background: rgba(255,255,255,.14); color: rgba(255,255,255,.85); }
+  .pcard .ptype .chip.keeps { background: rgba(52,199,123,.2); color: #7de0ae; }
+  .pcard h3 { font-size: 27px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; margin: 18px 0 10px; padding-right: 46px; }
+  .pcard .pbody { font-size: 15px; line-height: 1.5; color: rgba(255,255,255,.72); padding-right: 46px; }
+  .pcard .pimg { height: 150px; margin: 16px 0 4px; background: rgba(255,255,255,.08); color: rgba(255,255,255,.4); }
+  .pcard .pfoot { margin-top: auto; padding-top: 18px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .pcard .pstatus { font-size: 13px; color: rgba(255,255,255,.6); font-weight: 600; }
+  .pcard .btn { background: #fff; color: #141416; }
+  .pcard .btn.quiet { background: rgba(255,255,255,.14); color: #fff; }
+  .player-nav {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 20;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .player-nav button {
+    width: 48px; height: 48px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(255,255,255,.16); color: #fff; font-size: 18px;
+    backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
+  }
+  .player-nav button:disabled { opacity: .3; cursor: default; }
+  .player-pos {
+    position: absolute; right: 30px; top: 8px; z-index: 20;
+    font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,.65);
+  }
+  .player-pos .histmark { color: #f5b352; }
+  .player-hint {
+    position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; z-index: 20;
+    font-size: 12px; color: rgba(255,255,255,.6); pointer-events: none;
+  }
+  .player .statusbar-tint { color: #fff; }
+
+  /* ============ concept 2: homepage ============ */
+  .home { height: 100%; overflow-y: auto; background: #fafaf8; padding: 52px 0 48px; }
+  .home::-webkit-scrollbar { display: none; }
+  .home-head { padding: 10px 20px 2px; }
+  .home-head h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .home-head .home-sub { font-size: 13.5px; color: var(--ink-3); margin-top: 3px; }
+  .home-banner {
+    margin: 14px 20px 0; padding: 16px; border-radius: var(--radius);
+    background: var(--accent-soft); border: 1px solid #dfe3ff;
+  }
+  .home-banner .bt { font-size: 15px; font-weight: 700; color: var(--accent); }
+  .home-banner .bb { font-size: 13px; color: #4b4b6e; line-height: 1.45; margin-top: 4px; }
+  .home-banner .bcount { font-size: 12.5px; font-weight: 700; color: var(--accent); margin-top: 8px; }
+  .hsec { margin-top: 24px; }
+  .hsec-title {
+    padding: 0 20px 2px; font-size: 12px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-3);
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .hsec-title .cnt { font-weight: 600; letter-spacing: 0; text-transform: none; }
+  .hsec-note { padding: 2px 20px 0; font-size: 12px; color: #a05e14; }
+  .fy-scroll { display: flex; gap: 12px; overflow-x: auto; padding: 10px 20px 4px; scrollbar-width: none; }
+  .fy-scroll::-webkit-scrollbar { display: none; }
+  .fy-card {
+    flex: none; width: 236px; background: #fff; border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px; cursor: pointer; min-height: 118px;
+    display: flex; flex-direction: column;
+  }
+  .fy-card .ft { font-size: 15px; font-weight: 700; line-height: 1.3; }
+  .fy-card .fb { font-size: 13px; color: var(--ink-2); line-height: 1.45; margin-top: 4px; }
+  .fy-card .fcta { margin-top: auto; padding-top: 10px; font-size: 13.5px; font-weight: 700; color: var(--accent); }
+  .hrow {
+    display: flex; gap: 12px; align-items: center; padding: 10px 20px; min-height: 62px;
+    cursor: pointer; background: transparent;
+  }
+  .hrow:active { background: #f1f1ef; }
+  .hrow .ri {
+    flex: none; width: 42px; height: 42px; border-radius: 12px; background: #ececea;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: var(--ink-2); letter-spacing: .02em;
+  }
+  .hrow.is-mentor .ri { background: var(--accent-soft); color: var(--accent); }
+  .hrow .rmid { flex: 1; min-width: 0; }
+  .hrow .rt { font-size: 15px; font-weight: 600; line-height: 1.3; }
+  .hrow .rs { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .hrow .rs .kept { color: #157347; font-weight: 600; }
+  .hrow .dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+  .hrow .lock { flex: none; font-size: 12px; color: var(--ink-3); }
+  .hrow.is-done { opacity: .78; }
+  .hrow.is-done .rt { font-weight: 500; color: var(--ink-2); }
+  .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 10px 20px 2px; }
+  .tool-card {
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px; min-height: 118px; cursor: pointer; display: flex; flex-direction: column;
+  }
+  .tool-card .ti { width: 34px; height: 34px; border-radius: 10px; background: #ececea; margin-bottom: 10px;
+    display:flex; align-items:center; justify-content:center; font-size: 11px; font-weight: 800; color: var(--ink-2); }
+  .tool-card .tt { font-size: 14.5px; font-weight: 700; line-height: 1.25; }
+  .tool-card .ts { font-size: 12.5px; color: var(--ink-3); margin-top: auto; padding-top: 8px; }
+  .tool-card.slot { border-style: dashed; background: transparent; }
+  .tool-card.slot .tt { color: var(--ink-3); font-weight: 600; }
+
+  /* ============ concept 3: your desk ============ */
+  .desk { height: 100%; overflow-y: auto; background: #f5f4f0; padding: 52px 0 40px; }
+  .desk::-webkit-scrollbar { display: none; }
+  .desk-head { padding: 10px 20px 0; display: flex; align-items: baseline; justify-content: space-between; }
+  .desk-head h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+  .desk-head .rename { font-size: 12.5px; color: var(--ink-3); font-weight: 600; }
+  .desk-sub { padding: 2px 20px 0; font-size: 13px; color: var(--ink-3); }
+  .desk-area {
+    position: relative; height: 400px; margin: 12px 14px 0; border-radius: 18px;
+    border: 1.5px dashed #d6d4cd; touch-action: none; overflow: hidden;
+  }
+  .desk-area .desk-tag {
+    position: absolute; top: 10px; left: 14px; font-size: 12px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); pointer-events: none;
+  }
+  .dcard {
+    position: absolute; width: 158px; background: #fff; border: 1px solid var(--line);
+    border-radius: 14px; padding: 12px; cursor: grab; box-shadow: 0 6px 16px rgba(40,40,30,.10);
+  }
+  .dcard.dragging { cursor: grabbing; box-shadow: 0 14px 28px rgba(40,40,30,.18); z-index: 5; }
+  .dcard .dchip { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+  .dcard .dchip .chip { padding: 3px 7px; }
+  .dcard .dt2 { font-size: 14px; font-weight: 700; line-height: 1.25; }
+  .dcard .ds2 { font-size: 12px; color: var(--ink-3); margin-top: 6px; }
+  .dcard.sticky { background: #fdf6d8; border-color: #ecdf9e; width: 148px; }
+  .dcard.sticky .dt2 { font-size: 13px; }
+  .dcard.sticky .ds2 { color: #8a7a2e; font-weight: 600; }
+  .desk-note { padding: 8px 22px 0; font-size: 12px; color: var(--ink-3); }
+  .drawers { padding: 14px 14px 0; display: flex; flex-direction: column; gap: 10px; }
+  .drawer { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .drawer-head {
+    display: flex; align-items: center; gap: 12px; padding: 14px 16px; min-height: 60px;
+    cursor: pointer; width: 100%; border: 0; background: transparent; font: inherit; text-align: left;
+  }
+  .drawer-head:active { background: #f6f6f4; }
+  .drawer-head .dico {
+    flex: none; width: 40px; height: 40px; border-radius: 12px; background: #f0efec;
+    display: flex; align-items: center; justify-content: center; font-size: 17px;
+  }
+  .drawer-head .dlabel { flex: 1; font-size: 15.5px; font-weight: 700; }
+  .drawer-head .dcount { font-size: 12.5px; color: var(--ink-3); font-weight: 600; }
+  .drawer-head .dnew {
+    font-size: 11.5px; font-weight: 700; color: #fff; background: var(--accent);
+    border-radius: 999px; padding: 3px 9px;
+  }
+  .drawer-head .chev { color: var(--ink-3); font-size: 13px; transition: transform .2s; }
+  .drawer.open .chev { transform: rotate(180deg); }
+  .drawer-tray { display: none; border-top: 1px solid #efefec; padding: 6px 8px 10px; }
+  .drawer.open .drawer-tray { display: block; }
+  .tray-row {
+    display: flex; align-items: center; gap: 10px; padding: 10px 10px; min-height: 52px;
+    border-radius: 10px; cursor: pointer;
+  }
+  .tray-row:active { background: #f4f4f2; }
+  .tray-row .ri { flex: none; width: 36px; height: 36px; border-radius: 10px; background: #f0efec;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--ink-2); }
+  .tray-row .rt { flex: 1; font-size: 14px; font-weight: 600; min-width: 0; }
+  .tray-row .rt .sub2 { display: block; font-size: 12px; font-weight: 500; color: var(--ink-3); margin-top: 1px; }
+  .tray-row.is-done { opacity: .78; }
+  .tray-empty { padding: 12px 14px 14px; font-size: 13px; color: var(--ink-3); }
+
+  /* ============ comparison section ============ */
+  .compare { max-width: 1400px; margin: 56px auto 0; }
+  .compare h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .compare .csub { font-size: 13.5px; color: var(--ink-2); margin-bottom: 16px; }
+  .compare-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+  .compare table { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 13px; }
+  .compare th, .compare td { text-align: left; padding: 11px 14px; border-bottom: 1px solid #efefec; vertical-align: top; }
+  .compare th { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); background: #fafaf8; }
+  .compare td:first-child { font-weight: 600; width: 220px; }
+  .compare .s { display: inline-block; font-weight: 800; margin-right: 6px; }
+  .compare .s.good { color: #157347; } .compare .s.mid { color: #a05e14; } .compare .s.bad { color: #b3261e; }
+  .reco {
+    margin-top: 18px; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    border-radius: 12px; padding: 18px 20px; font-size: 14px; line-height: 1.6; color: var(--ink-2);
+  }
+  .reco h3 { font-size: 15px; color: var(--ink); margin-bottom: 6px; }
+  .reco strong { color: var(--ink); }
+
+  /* ============ pager shell (the real app around the Hub) ============ */
+  .pager { position: absolute; inset: 0; display: flex; flex-direction: column; background: #fff; }
+  .pane-strip {
+    flex: none; height: 46px; margin-top: 42px; display: flex; align-items: center; gap: 6px;
+    padding: 0 10px; border-bottom: 1px solid #efefec; background: #fff; z-index: 10;
+  }
+  .strip-tabs { flex: 1; display: flex; gap: 2px; justify-content: center; }
+  .strip-tabs button {
+    border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 600;
+    color: var(--ink-3); padding: 0 12px; min-height: 44px; cursor: pointer; border-radius: 8px;
+    position: relative;
+  }
+  .strip-tabs button.on { color: var(--ink); }
+  .strip-tabs button.on::after {
+    content: ''; position: absolute; left: 12px; right: 12px; bottom: 5px; height: 3px;
+    border-radius: 2px; background: var(--ink);
+  }
+  .crisis-btn {
+    flex: none; border: 0; background: #fdeeee; color: #a11d16; font: inherit;
+    font-size: 12px; font-weight: 700; min-height: 44px; padding: 0 14px; border-radius: 999px;
+    cursor: pointer; white-space: nowrap;
+  }
+  .pager-viewport { flex: 1; position: relative; overflow: hidden; }
+  .pager-track { position: absolute; inset: 0; display: flex; transition: transform .32s cubic-bezier(.3,.7,.25,1); }
+  .pane { flex: none; width: 390px; height: 100%; position: relative; overflow: hidden; }
+
+  /* ============ chat pane ============ */
+  .chat { height: 100%; display: flex; flex-direction: column; background: #fff; }
+  .chat-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #f2f2f0; }
+  .chat-head .avatar {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--accent-soft); color: var(--accent);
+    display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; flex: none;
+  }
+  .chat-head .cname { font-size: 16px; font-weight: 700; }
+  .chat-head .cstatus { font-size: 12.5px; color: var(--ink-3); }
+  .chat-head .cstatus.live { color: #157347; font-weight: 600; }
+  .chat-scroll { flex: 1; overflow-y: auto; padding: 16px 16px 10px; display: flex; flex-direction: column; gap: 10px; }
+  .chat-scroll.offline { opacity: .8; }
+  .msg { max-width: 76%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; }
+  .msg.them { align-self: flex-start; background: #f1f1ef; color: var(--ink); border-bottom-left-radius: 6px; }
+  .msg.me { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 6px; }
+  .msg.sys { align-self: center; background: transparent; color: var(--ink-3); font-size: 12.5px; text-align: center; max-width: 88%; padding: 2px 8px; }
+  .chatcard {
+    align-self: flex-start; width: 84%; background: #fff; border: 1.5px solid var(--line);
+    border-radius: 16px; padding: 14px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.05);
+  }
+  .chatcard .cc-label { font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  .chatcard .cc-title { font-size: 16px; font-weight: 700; line-height: 1.3; }
+  .chatcard .cc-img { height: 84px; margin-top: 10px; }
+  .chatcard .btn { margin-top: 12px; width: 100%; min-height: 44px; background: var(--accent); }
+  .pointer-card {
+    align-self: stretch; background: var(--accent-soft); border: 1px solid #dfe3ff; border-radius: 16px;
+    padding: 14px; position: relative;
+  }
+  .pointer-card .pc-t { font-size: 14.5px; font-weight: 700; color: var(--accent); padding-right: 40px; }
+  .pointer-card .pc-b { font-size: 13px; color: #4b4b6e; line-height: 1.45; margin-top: 4px; }
+  .pointer-card .pc-go { margin-top: 10px; background: var(--accent); min-height: 44px; }
+  .pointer-card .pc-x {
+    position: absolute; top: 4px; right: 4px; width: 44px; height: 44px; border: 0; background: transparent;
+    color: #4b4b6e; font-size: 16px; cursor: pointer; border-radius: 50%;
+  }
+  .composer { flex: none; display: flex; gap: 8px; align-items: center; padding: 10px 12px 22px; border-top: 1px solid #f2f2f0; }
+  .composer .cplus {
+    flex: none; width: 44px; height: 44px; border-radius: 50%; background: #f1f1ef; border: 0;
+    font-size: 20px; color: var(--ink-2); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .composer .cinput {
+    flex: 1; min-height: 44px; border-radius: 22px; background: #f1f1ef; display: flex; align-items: center;
+    padding: 0 16px; font-size: 15px; color: var(--ink-3);
+  }
+  .composer .csend {
+    flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--accent); opacity: .35;
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+
+  /* ============ your corner pane ============ */
+  .corner { height: 100%; overflow-y: auto; background: #faf3e2; padding: 20px 24px 40px; }
+  .corner h2 { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; color: #141414; }
+  .corner .scribble { display: block; margin: 2px 0 18px; }
+  .corner .goal { font-size: 21px; font-weight: 800; color: #141414; line-height: 1.3; margin-top: 22px; position: relative; }
+  .corner .goal .gmark { position: absolute; left: -6px; top: -8px; pointer-events: none; }
+  .corner .corner-note { margin-top: 40px; font-size: 13px; line-height: 1.55; color: #6b6250; }
+  .corner .corner-note b { color: #3d382c; }
+
+  /* ============ player index overlay ============ */
+  .pindex { position: absolute; inset: 0; z-index: 26; background: #fff; display: flex; flex-direction: column; }
+  .pindex-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 14px 8px 8px 20px; }
+  .pindex-head h4 { font-size: 17px; font-weight: 700; }
+  .pindex-head button { border: 0; background: transparent; font-size: 17px; width: 48px; height: 48px; cursor: pointer; color: var(--ink-2); }
+  .pindex-scroll { flex: 1; overflow-y: auto; padding: 0 8px 30px; }
+  .pindex .hsec-title { padding: 14px 12px 4px; }
+
+  /* narrow windows: stack + shrink frames so nothing clips */
+  @media (max-width: 480px) {
+    body { padding: 24px 12px 60px; }
+    .concepts { gap: 28px; }
+    .concept { width: 100%; max-width: 402px; }
+    .phone { zoom: 0.9; }
+  }
+</style>
+</head>
+<body>
+
+<header class="page-head">
+  <span class="tag">MMT-0 · design exploration · not production UI</span>
+  <h1>Hub layout concepts — teen app home</h1>
+  <p>Three structural bets for the Hub as the persistent home of all tools and activities.
+     Toggle states above each phone: <b>a</b> new teen (not matched) · <b>b</b> mid-mentorship ·
+     <b>c</b> just rematched. Tap any item for its detail sheet (placeholder — tools aren't built).
+     Content is invented; mentors “Maya” and “Jordan” are fake.</p>
+</header>
+
+<div class="concepts" id="concepts"></div>
+
+<section class="compare">
+  <h2>Scoring against the principles</h2>
+  <div class="csub">✓ holds by structure · ~ holds with effort · ✗ fights the concept</div>
+  <div class="compare-card">
+    <table>
+      <thead><tr><th>Principle / question</th><th>1 · Player (feed)</th><th>2 · Homepage (by mode)</th><th>3 · Your desk</th></tr></thead>
+      <tbody>
+        <tr><td>No tool is onboarding-only</td>
+          <td><span class="s good">✓</span>every item gets the full screen, tools included</td>
+          <td><span class="s good">✓</span>“On your own” grid is permanent furniture</td>
+          <td><span class="s good">✓</span>tools live in a drawer forever, pinnable</td></tr>
+        <tr><td>Optionality &amp; high agency</td>
+          <td><span class="s bad">✗</span>the feed’s order chooses for you; agency = skipping</td>
+          <td><span class="s mid">~</span>you choose from a menu someone else arranged</td>
+          <td><span class="s good">✓</span>you arrange the space itself; strongest form of agency</td></tr>
+        <tr><td>Moments point into the Hub</td>
+          <td><span class="s mid">~</span>countdown is card #1, but “land in the feed” = land on one thing</td>
+          <td><span class="s good">✓</span>banner + whole space visible at once — the “in the meantime” story is literal</td>
+          <td><span class="s good">✓</span>countdown sits on the desk beside usable tools</td></tr>
+        <tr><td>Never a bot</td>
+          <td><span class="s mid">~</span>an algorithmic stream <i>feels</i> curated-for-you — adjacent to bot-ness</td>
+          <td><span class="s good">✓</span>neutral shelves; For You clearly labeled a nudge</td>
+          <td><span class="s good">✓</span>a place, not a talker; recs are a sticky note</td></tr>
+        <tr><td>Findability (“that grounding thing”)</td>
+          <td><span class="s bad">✗</span>N swipes + filters; worst of the three</td>
+          <td><span class="s good">✓</span>stable addresses; two taps to anything</td>
+          <td><span class="s mid">~</span>fine at 10 items, rummaging at 25</td></tr>
+        <tr><td>New tool ships with zero routing</td>
+          <td><span class="s good">✓</span>one more card in the stream</td>
+          <td><span class="s good">✓</span>one more card in the grid (by-category would fail this)</td>
+          <td><span class="s mid">~</span>lands in “Your tools” fine, but discovery needs a sticky pointing at it</td></tr>
+        <tr><td>History survives rematch legibly</td>
+          <td><span class="s bad">✗</span>kept + archived interleave on one swipe axis; mushy</td>
+          <td><span class="s good">✓</span>section rename + “kept / w/ Maya” chips; adequate, a bit clinical</td>
+          <td><span class="s good">✓</span>best story: Keepsakes box stays on your desk, drawer gets a new name</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="reco">
+    <h3>Recommendation</h3>
+    <strong>Ship concept 2, organized by mode, as the Hub’s skeleton — and steal concept 3’s Keepsakes
+    idea for history.</strong> The Hub’s job after the Sep 10 decision is to be a reliable, legible
+    shelf that absorbs an unknown number of future tools with zero routing decisions; the homepage is
+    the only concept where that’s structurally guaranteed <em>and</em> findability holds. Its real
+    weakness — dashboard coldness — is a content-design problem (voice, card art, the For You rail),
+    not a structural one; the player’s and desk’s weaknesses (findability, discovery-at-scale) are
+    structural. The desk is the braver bet and the best rematch story, but it bets the cold start on
+    default-pin curation — a per-teen policy, i.e. the thing we’re designing out. Revisit it when
+    tools are stable. The player shouldn’t die: it’s the right <em>moment</em> surface (waiting-for-match,
+    mentor offline) — a feed you can point into that itself points back at the Hub.
+  </div>
+</section>
+
+<script>
+/* =====================================================================
+   SHARED CONTENT MODEL
+   One dataset per state; all three concepts render the same items.
+   type: swap | hottake | deepthought | note | moment | tool | foryou | system
+   mode: mentor | solo | meta
+   status: new | pending | done | locked
+   keeps: survives rematch
+===================================================================== */
+const TYPE_LABEL = {
+  swap: 'Swap', hottake: 'Hot take', deepthought: 'Deep thought', note: 'Note',
+  moment: 'Moment', tool: 'Tool', foryou: 'For you', system: ''
+};
+
+const TOOLS = [
+  { id:'tool-breathe', type:'tool', mode:'solo', keeps:true, status:'new',
+    title:'Box breathing', body:'Four counts in, hold, out, hold. A 2-minute reset you can do anywhere — even mid-class.', dur:'2 min' },
+  { id:'tool-ground', type:'tool', mode:'solo', keeps:true, status:'new',
+    title:'5-4-3-2-1 grounding', body:'Name 5 things you can see, 4 you can touch… pulls a racing head back into the room.', dur:'3 min' },
+  { id:'tool-confess', type:'tool', mode:'solo', keeps:true, status:'new',
+    title:'Show me I’m not alone', body:'Anonymous confessions from other teens. Read, relate, leave a ❤️ — no comments, no clout.', dur:'read' },
+  { id:'tool-goals', type:'tool', mode:'solo', keeps:true, status:'pending',
+    title:'Goal builder', body:'Break one thing you want into steps small enough to actually start.', dur:'10 min',
+    statusText:'1 goal in progress' },
+  { id:'tool-soon', type:'system', mode:'meta', status:'new',
+    title:'More tools on the way', body:'New tools land right here when they ship — nothing to unlock, nothing to set up. (assumption: a new tool is just a new item, no routing)' },
+];
+
+const STATES = {
+  a: {
+    label:'a · not matched yet', mentor:null,
+    items: [
+      { id:'countdown', type:'system', mode:'meta', status:'new',
+        title:'Your mentor match is close', body:'We’re matching you now — usually under a few hours. In the meantime, this space is already yours.',
+        statusText:'≈ 2h 14m' },
+      { id:'fy-a1', type:'foryou', mode:'solo', status:'new',
+        title:'Waiting is the worst part', body:'Grounding helps when your brain won’t sit still. 3 minutes, no talking to anyone.', cta:'Try grounding' },
+      ...TOOLS.map(t => t.id==='tool-goals' ? {...t, status:'new', statusText:null} : t),
+      { id:'locked-swap', type:'swap', mode:'mentor', status:'locked',
+        title:'Swaps unlock with your mentor', body:'You both answer the same prompt, then reveal at the same time. First one’s usually an icebreaker.' },
+      { id:'locked-note', type:'note', mode:'mentor', status:'locked',
+        title:'Notes from your mentor land here', body:'Little check-ins, hype before a big day, things they saw that made them think of you.' },
+      { id:'fy-a2', type:'foryou', mode:'solo', status:'new',
+        title:'Set one tiny goal', body:'Something for this week, not your whole life. Your mentor will see it when you’re matched — if you share it.', cta:'Open goal builder' },
+    ]
+  },
+  b: {
+    label:'b · with Maya', mentor:'Maya',
+    items: [
+      // history (done) — the feed starts *below* these
+      { id:'swap-0', type:'swap', mode:'mentor', status:'done', when:'last week',
+        title:'Comfort movie you’ve seen 10+ times?', body:'You: “Spider-Verse, obviously.” Maya: “Mamma Mia and I will not be taking questions.”' },
+      { id:'dt-1', type:'deepthought', mode:'mentor', keeps:true, status:'done', when:'5 days ago',
+        title:'A time you surprised yourself', body:'You wrote about speaking up in the group project. Saved to your keepsakes.' },
+      { id:'mom-1', type:'moment', mode:'mentor', status:'done', when:'3 days ago',
+        title:'One month of you two', body:'Milestone moment — first month with Maya.', img:true },
+      // now / new
+      { id:'swap-1', type:'swap', mode:'mentor', status:'pending', origin:'chat',
+        title:'What’s a small win from this week?', body:'Maya started this swap in your chat. You both answer, then reveal together.',
+        statusText:'waiting in your chat', cta:'View in chat' },
+      { id:'mom-2', type:'moment', mode:'mentor', status:'pending', origin:'chat', img:true,
+        title:'Making the team 🎉', body:'Maya started this Moment in your chat — add your photo to finish it.',
+        statusText:'waiting in your chat', cta:'View in chat' },
+      { id:'hot-1', type:'hottake', mode:'mentor', status:'new', origin:'chat',
+        title:'“Group chats are better than parties.”', body:'Maya’s take, dropped in your chat. Agree or nah? 30 seconds, no essay required.',
+        statusText:'in your chat', cta:'View in chat' },
+      { id:'note-1', type:'note', mode:'mentor', status:'new',
+        title:'From Maya', body:'“Saw this before your tryouts — you’ve got this 🍀 text me after?”', cta:'Read note' },
+      { id:'fy-b1', type:'foryou', mode:'solo', status:'new',
+        title:'Wound up before school?', body:'5-4-3-2-1 grounding takes 3 minutes and you can do it on the bus.', cta:'Try it' },
+      ...TOOLS,
+      { id:'fy-b2', type:'foryou', mode:'mentor', status:'new', chatLink:true,
+        title:'It’s been a few days since your last swap', body:'Ask Maya for one in chat — she’s quick. (assumption: swaps start in the thread, never from here)', cta:'Go to chat' },
+    ]
+  },
+  c: {
+    label:'c · rematched to Jordan', mentor:'Jordan',
+    items: [
+      // carried / archived history
+      { id:'dt-1c', type:'deepthought', mode:'mentor', keeps:true, status:'done', archived:'Maya', when:'2 weeks ago',
+        title:'A time you surprised yourself', body:'Written during your time with Maya. Deep thoughts stay with you — Jordan can’t see them unless you share.' },
+      { id:'arch-swap', type:'swap', mode:'mentor', status:'done', archived:'Maya', when:'2 weeks ago',
+        title:'Comfort movie you’ve seen 10+ times?', body:'From your time with Maya. Read-only — swaps belong to the pair that made them.' },
+      { id:'arch-mom', type:'moment', mode:'mentor', status:'done', archived:'Maya', when:'2 weeks ago',
+        title:'One month of you two', body:'Kept as a memory from your time with Maya.', img:true },
+      // now
+      { id:'note-j', type:'note', mode:'mentor', status:'new',
+        title:'From Jordan', body:'“Hey! I read the intro you okayed sharing. Zero pressure to perform here — I’m mostly excited about the Spider-Verse thing.”', cta:'Read note' },
+      { id:'swap-j', type:'swap', mode:'mentor', status:'pending', origin:'chat',
+        title:'First swap: what’s your comfort food?', body:'Jordan started this in your chat. Classic icebreaker — answer there, reveal together.',
+        statusText:'waiting in your chat', cta:'View in chat' },
+      { id:'fy-c1', type:'foryou', mode:'solo', status:'new',
+        title:'New mentor, same you', body:'Your deep thoughts and goals moved with you. Only the “with Maya” stuff stayed behind.', cta:'See what carried over' },
+      ...TOOLS,
+    ]
+  }
+};
+
+/* chat thread per state — the chat is the app's main screen; mentor activities are cards IN it */
+const CHAT = {
+  a: {
+    name:'Somethings', initial:'S', status:'finding your mentor · ≈ 2h 14m', offline:true,
+    composer:'Say hi once you’re matched…',
+    messages: [
+      { kind:'sys', text:'We’re matching you with a mentor who gets it. Usually takes a few hours.' },
+      { kind:'them', text:'Hey — welcome 👋 While we find your person, your space next door already works. No login quests, no tutorial. Poke around.' },
+      { kind:'pointer' },
+    ]
+  },
+  b: {
+    name:'Maya', initial:'M', status:'online now',
+    composer:'Message Maya…',
+    messages: [
+      { kind:'them', text:'okok important question. how did tryouts go' },
+      { kind:'me', text:'I MADE THE TEAM' },
+      { kind:'them', text:'STOP. I told you!! knew it since you sent that 200m time 🎉' },
+      { kind:'card', id:'mom-2', label:'Moment · from Maya', cta:'Add your photo' },
+      { kind:'them', text:'also left you a swap for later, zero rush. go celebrate' },
+      { kind:'me', text:'pizza with the team rn 🍕' },
+    ]
+  },
+  c: {
+    name:'Jordan', initial:'J', status:'online now',
+    composer:'Message Jordan…',
+    messages: [
+      { kind:'sys', text:'You’ve been matched with Jordan. Your deep thoughts and goals came with you.' },
+      { kind:'them', text:'hey! I’m Jordan. read the intro you okayed sharing — zero pressure to perform here, I’m mostly excited about the Spider-Verse thing' },
+      { kind:'card', id:'swap-j', label:'Swap · from Jordan', cta:'Answer' },
+      { kind:'them', text:'that’s there whenever. no timer on any of this' },
+    ]
+  }
+};
+
+const GOALS = [
+  { text:'Make varsity track', mark:'circle' },
+  { text:'Ask for help before it’s a crisis', mark:'underline' },
+  { text:'Keep Sundays for me', mark:'none' },
+];
+
+const CRISIS_ITEM = {
+  id:'crisis', type:'system', mode:'meta', status:'new',
+  title:'Talk to someone now',
+  body:'If things feel heavy right now, you don’t have to hold it alone.',
+};
+
+/* which flow / branching flags we hit while building — rendered under each concept */
+const FLAGS = {
+  homepage: `The category model IS routing-as-taxonomy: every tool needs a filing decision before it
+    can ship — “More tools on the way” literally has no shelf, so I had to invent an “…and more”
+    section (tagged in the UI). Second spot: what “Done” shows after a rematch — mixing your kept
+    items with archived-Maya items in one section vs splitting them is a teen-state branch;
+    I kept one section and let chips (“kept” / “w/ Maya”) do the work instead of a branch.`,
+  desk: `The default desk — what’s pinned before the teen has arranged anything — is a per-teen
+    curation policy in disguise (pin the half-done swap? the newest note? a calming tool?). I fixed
+    it to “most recent pending thing + two tools” and labeled it in the UI. Second spot: the “N new”
+    badge on each drawer is a recommendation weight — the moment badges compete (2 new here, 3 new
+    there), their ranking is the routing question again. Kept them as plain counts, never sorted.`,
+  player: `Ordering the stream <i>is</i> a per-teen policy: what's on top when the pane opens
+    quietly wants "which kind of teen is this" logic — kept dumb here (pending, then new, then
+    tools), but every smarter sort is the routing question in a hat. Second: state (a) — locked
+    previews instead of hiding mentor items keeps one Hub for everyone. Third, new: the vertical
+    feed and the horizontal chat↔player pager share one surface — axis-lock (first ~10px of drag
+    commits an axis) resolves most of it, but diagonal swipes misfire, and on native this is two
+    competing gesture recognizers forever. The player pays an input tax the other concepts don't.
+    Fourth: the offline/unmatched pointer card in chat is itself a targeting rule — one rule, but a rule.`,
+};
+
+/* =====================================================================
+   CONCEPT 3 — YOUR DESK
+===================================================================== */
+function buildDesk(root, state, conceptEl) {
+  const data = STATES[state];
+  const mentor = data.mentor;
+  conceptEl.querySelector('.statusbar').style.color = '';
+  const items = data.items;
+  const abbr = t => ({swap:'SW', hottake:'HT', deepthought:'DT', note:'NO', moment:'MO', tool:'TL', foryou:'FY', system:'··'}[t]);
+  const byId = id => items.find(i => i.id === id);
+
+  // default pins per state — fixed policy, flagged in commentary
+  const PINS = {
+    a: [ {id:'countdown', x:16, y:34, r:-2.5}, {id:'tool-ground', x:196, y:64, r:2},
+         {id:'tool-goals', x:52, y:196, r:-1} ],
+    b: [ {id:'swap-1', x:16, y:34, r:-2}, {id:'tool-breathe', x:200, y:80, r:2.5},
+         {id:'tool-goals', x:48, y:200, r:-1.5} ],
+    c: [ {id:'note-j', x:16, y:34, r:-2}, {id:'swap-j', x:196, y:74, r:2},
+         {id:'dt-1c', x:44, y:204, r:-1.5} ],
+  };
+  const STICKY = { a:'fy-a2', b:'fy-b2', c:'fy-c1' };
+  const pins = PINS[state];
+  const stickyItem = byId(STICKY[state]);
+  const pinnedIds = new Set([...pins.map(p => p.id), stickyItem.id]);
+
+  const rest = items.filter(i => !pinnedIds.has(i.id) && i.type !== 'foryou');
+  const isKeepsake = i => (i.keeps && i.status === 'done') || i.archived;
+  const drawers = [
+    { key:'mentor', ico:'✉️', label: mentor ? 'With ' + mentor : 'With your mentor',
+      rows: rest.filter(i => i.mode === 'mentor' && !isKeepsake(i)),
+      empty: state === 'a' ? 'unlocks when you’re matched — peek inside anytime'
+           : state === 'c' ? 'just getting started — your first swap is on the desk' : '' },
+    { key:'tools', ico:'🧰', label:'Your tools',
+      rows: rest.filter(i => (i.type === 'tool' || i.id === 'tool-soon') && !isKeepsake(i)) },
+    { key:'keeps', ico:'📦', label:'Keepsakes',
+      rows: rest.filter(isKeepsake),
+      empty:'fills up as you do things — everything in here stays with you', sub:'yours, even if you’re rematched' },
+  ];
+
+  const dcardHtml = (p) => {
+    const i = byId(p.id);
+    return `<div class="dcard" data-id="${i.id}" style="left:${p.x}px; top:${p.y}px; transform:rotate(${p.r}deg)">
+      <div class="dchip">
+        <span class="chip ${i.mode==='mentor'?'mentor':''}">${TYPE_LABEL[i.type] || 'heads up'}</span>
+        ${i.keeps && state==='c' ? '<span class="chip keeps">kept</span>' : ''}
+        ${i.status==='new' ? '<span class="chip" style="background:var(--accent);color:#fff">new</span>' : ''}
+      </div>
+      <div class="dt2">${i.title}</div>
+      <div class="ds2">${i.statusText || i.dur || (i.archived ? 'w/ '+i.archived : '')}</div>
+    </div>`;
+  };
+  const stickyHtml = `
+    <div class="dcard sticky" data-id="${stickyItem.id}" style="right:14px; bottom:16px; transform:rotate(1.5deg)">
+      <div class="dt2">${stickyItem.title}</div>
+      <div class="ds2">${stickyItem.cta || 'Open'} →</div>
+    </div>`;
+
+  const trayRow = i => `
+    <div class="tray-row ${i.status==='done'?'is-done':''}" data-id="${i.id}">
+      <div class="ri">${abbr(i.type)}</div>
+      <div class="rt">${i.title}
+        <span class="sub2">${TYPE_LABEL[i.type]}${i.archived ? ' · w/ '+i.archived : (i.mode==='mentor'&&i.status!=='locked'&&mentor ? ' · with '+mentor : '')}${i.keeps&&(i.status==='done'||state==='c') ? ' · stays with you' : ''}${i.status==='locked' ? ' · 🔒 at match' : ''}${i.statusText ? ' · '+i.statusText : ''}</span>
+      </div>
+      ${i.status==='new' ? '<span class="chip" style="background:var(--accent);color:#fff">new</span>' : ''}
+    </div>`;
+
+  root.innerHTML = `
+    <div class="desk">
+      <div class="desk-head"><h2>the corner</h2><span class="rename">rename</span></div>
+      <div class="desk-sub">${state==='a' ? 'yours already — your mentor joins in ≈ 2h 14m' : 'arrange it however you want'}</div>
+      <div class="desk-area" data-area>
+        <span class="desk-tag">out on your desk</span>
+        ${pins.map(dcardHtml).join('')}
+        ${stickyHtml}
+      </div>
+      <div class="desk-note">drag to arrange · tap to open · assumption: default pins = latest pending thing + two tools</div>
+      <div class="drawers">
+        ${drawers.map(d => {
+          const newCount = d.rows.filter(r => r.status === 'new' && r.type !== 'system').length;
+          return `<div class="drawer" data-drawer="${d.key}">
+            <button class="drawer-head">
+              <span class="dico">${d.ico}</span>
+              <span class="dlabel">${d.label}${d.sub ? `<span class="sub2" style="display:block;font-size:12px;font-weight:500;color:var(--ink-3)">${d.sub}</span>` : ''}</span>
+              ${newCount ? `<span class="dnew">${newCount} new</span>` : ''}
+              <span class="dcount">${d.rows.length}</span>
+              <span class="chev">▾</span>
+            </button>
+            <div class="drawer-tray">
+              ${d.rows.length ? d.rows.map(trayRow).join('') : ''}
+              ${!d.rows.length && d.empty ? `<div class="tray-empty">${d.empty}</div>` : ''}
+              ${d.rows.length && d.empty ? `<div class="tray-empty">${d.empty}</div>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  // drawers open/close
+  root.querySelectorAll('.drawer-head').forEach(h => h.addEventListener('click', () => {
+    h.parentElement.classList.toggle('open');
+  }));
+  // tray rows + sticky open sheet
+  root.querySelectorAll('.tray-row, .dcard.sticky').forEach(el2 => {
+    el2.addEventListener('click', () => {
+      const item = byId(el2.dataset.id);
+      if (item) openSheet(conceptEl, item, mentor);
+    });
+  });
+  // desk cards: drag to arrange, tap to open
+  const area = root.querySelector('[data-area]');
+  root.querySelectorAll('.dcard:not(.sticky)').forEach(card => {
+    let start = null, moved = false;
+    card.addEventListener('pointerdown', e => {
+      start = { px: e.clientX, py: e.clientY, x: card.offsetLeft, y: card.offsetTop };
+      moved = false;
+      card.setPointerCapture(e.pointerId);
+      card.classList.add('dragging');
+    });
+    card.addEventListener('pointermove', e => {
+      if (!start) return;
+      const dx = e.clientX - start.px, dy = e.clientY - start.py;
+      if (Math.abs(dx) + Math.abs(dy) > 8) moved = true;
+      if (!moved) return;
+      const maxX = area.clientWidth - card.offsetWidth, maxY = area.clientHeight - card.offsetHeight;
+      card.style.left = Math.max(0, Math.min(maxX, start.x + dx)) + 'px';
+      card.style.top = Math.max(0, Math.min(maxY, start.y + dy)) + 'px';
+    });
+    card.addEventListener('pointerup', () => {
+      card.classList.remove('dragging');
+      if (!moved) { const item = byId(card.dataset.id); if (item) openSheet(conceptEl, item, mentor); }
+      start = null;
+    });
+    card.addEventListener('pointercancel', () => { card.classList.remove('dragging'); start = null; });
+  });
+  return () => {};
+}
+
+/* =====================================================================
+   PAGE SCAFFOLD
+===================================================================== */
+const CONCEPTS = [
+  {
+    key:'player', name:'1 · “Somethings player”', sub:'Chat → swipe right into a vertical feed',
+    commentary: `<strong>The bet:</strong> attention is scarce — show one thing at a time and make
+      “what’s next” a swipe, not a decision. <strong>In the app:</strong> chat stays the spine;
+      the player is the right pane, and every mentor activity in it is a <em>mirror</em> of a chat
+      card (“waiting in your chat →”) — doing happens in the thread.
+      <strong>Your Corner: kept</strong> as the left pane — the feed is the highest-stimulation
+      concept and would turn calm read-only goals into skippable content.
+      <strong>Findability:</strong> the ⊞ index is the 3am path — two taps to box breathing, no
+      swiping. <strong>New tool:</strong> a card in the stream + a row in the index; zero routing.
+      <strong>Rematch:</strong> the feed’s single axis stays mushy for history (kept and
+      archived interleave); the index carries the “stays with you” story instead.`,
+    build: (root, state, conceptEl) => makePager(root, conceptEl, [
+      { key:'corner', label:'corner', build: el => buildCornerPane(el, state) },
+      { key:'chat',   label:'chat',   build: el => buildChatPane(el, state, conceptEl) },
+      { key:'player', label:'player', build: el => buildPlayerPane(el, state, conceptEl) },
+    ], 1),
+  },
+  {
+    key:'homepage', name:'2 · Classic homepage', sub:'Scrollable sections — toggle the organizing model',
+    options: [{ key:'model', label:'organize', default:'mode',
+      values:[{k:'mode',label:'by mode'},{k:'cat',label:'by category'}] }],
+    commentary: `<strong>The bet:</strong> legibility beats immersion — a teen scans the whole space
+      in two seconds, then chooses. Best-in-class findability: everything has a stable address, history
+      is a section, and a new tool is one more card in a grid — no decisions, no routing.
+      <strong>Where it breaks:</strong> it reads as a dashboard, not a place; solo tools become
+      furniture you scroll past, and For You cards are banner-blind by week two.
+      <strong>Model verdict: by mode wins.</strong> Category filing is an editorial decision per tool
+      (is Goal builder “Reflect” or “Grow”? — see the assumption tag), and the unnamed future tools
+      can’t be filed at all. Mode is a fact — who’s involved — it matches the teen’s mental model
+      (“us” vs “me”), and it maps 1:1 to what survives a rematch. Toggle both and feel the difference.`,
+    build: buildHomepage,
+  },
+  {
+    key:'chatanchor', name:'3 · Chat-anchored', sub:'Replaces “Your desk” — being rebuilt',
+    commentary: `Being rebuilt: the Hub mostly dissolves into the chat — a tool shelf above the
+      composer, the thread as spine, the right pane shrunk to an index/history.`,
+    build: (root) => { root.innerHTML = '<div class="placeholder-screen">Concept 3 · chat-anchored<br>builds after your read on 1 &amp; 2</div>'; },
+  },
+];
+
+const conceptsEl = document.getElementById('concepts');
+CONCEPTS.forEach(c => {
+  const el = document.createElement('section');
+  el.className = 'concept';
+  const optHtml = (c.options||[]).map(o => `
+      <span class="seg-label">${o.label}</span>
+      <div class="seg">
+        ${o.values.map(v => `<button data-opt="${o.key}" data-val="${v.k}" ${v.k===o.default?'class="on"':''}>${v.label}</button>`).join('')}
+      </div>`).join('');
+  el.innerHTML = `
+    <div class="concept-head"><h2>${c.name}</h2><div class="sub">${c.sub}</div></div>
+    <div class="controls">
+      <span class="seg-label">state</span>
+      <div class="seg" data-seg>
+        ${['a','b','c'].map(s => `<button data-state="${s}" ${s==='b'?'class="on"':''}>${s}</button>`).join('')}
+      </div>
+      <span class="seg-label" data-statelabel>${STATES.b.label}</span>
+      ${optHtml}
+    </div>
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+      <div class="screen" data-screen></div>
+      <div class="sheet-scrim" data-scrim></div>
+      <div class="sheet" data-sheet></div>
+    </div>
+    <div class="commentary">${c.commentary}
+      ${FLAGS[c.key] ? `<div class="flag"><b>⚠ where “which flow?” sneaks back in</b>${FLAGS[c.key]}</div>` : ''}
+    </div>`;
+  conceptsEl.appendChild(el);
+
+  const screen = el.querySelector('[data-screen]');
+  const opts = Object.fromEntries((c.options||[]).map(o => [o.key, o.default]));
+  let curState = 'b';
+  let teardown = () => {};
+  const render = () => {
+    teardown();
+    el.querySelector('[data-statelabel]').textContent = STATES[curState].label;
+    closeSheet(el);
+    teardown = c.build(screen, curState, el, opts) || (()=>{});
+  };
+  el.querySelectorAll('[data-state]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      el.querySelectorAll('[data-state]').forEach(b => b.classList.toggle('on', b === btn));
+      curState = btn.dataset.state;
+      render();
+    });
+  });
+  el.querySelectorAll('[data-opt]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      opts[btn.dataset.opt] = btn.dataset.val;
+      el.querySelectorAll(`[data-opt="${btn.dataset.opt}"]`).forEach(b => b.classList.toggle('on', b === btn));
+      render();
+    });
+  });
+  render();
+});
+
+/* =====================================================================
+   DETAIL SHEET (shared)
+===================================================================== */
+function openSheet(conceptEl, item, mentor, opt = {}) {
+  const sheet = conceptEl.querySelector('[data-sheet]');
+  const scrim = conceptEl.querySelector('[data-scrim]');
+  const who = item.archived ? item.archived : mentor;
+  const chips = [
+    item.type !== 'system' ? `<span class="chip ${item.mode==='mentor'?'mentor':''}">${TYPE_LABEL[item.type]}</span>` : '',
+    item.mode==='mentor' && who && item.status!=='locked' ? `<span class="chip">${item.archived ? 'from your time with '+who : 'with '+who}</span>` : '',
+    item.keeps ? `<span class="chip keeps">stays with you if rematched</span>` : '',
+    item.status==='locked' ? `<span class="chip locked">unlocks at match</span>` : '',
+    item.status==='done' ? `<span class="chip">done${item.when ? ' · '+item.when : ''}</span>` : '',
+  ].join('');
+  const placeholder =
+    item.id==='crisis' ? `<b>Crisis resources open here</b> — call/text lines, a grounding exercise, and a direct line to a human. One tap from every screen, every state; never buried.` :
+    item.status==='locked' ? `<b>Locked preview.</b> Pre-match, this opens the same sheet with an explainer — not a different flow. One Hub, some items dormant.` :
+    item.type==='tool' ? `<b>The actual tool runs here</b> — e.g. the guided ${item.title.toLowerCase()} screen (${item.dur||''}). Full-screen takeover only after the teen taps in; never auto-launched.` :
+    item.type==='swap' && item.origin==='chat' ? `<b>Mirror of a chat card.</b> The swap lives in your thread — answering and the reveal happen there; the finished swap lands here afterward.` :
+    item.type==='swap' ? `<b>The swap flow runs here</b> — answer field, then the simultaneous reveal, then “Respond…” comments.` :
+    item.type==='hottake' && item.origin==='chat' ? `<b>Mirror of a chat card.</b> Maya dropped this take in the thread; agree/nah happens there. This is the record of it.` :
+    item.type==='hottake' ? `<b>The hot-take response runs here</b> — quick agree/nah + optional one-liner back.` :
+    item.type==='deepthought' ? `<b>The reflection editor runs here</b> — longer prompt, private by default, “Share to Hub” switch.` :
+    item.type==='note' ? `<b>The full note renders here</b>, with a nudge to reply in chat — replying is talking to your mentor, so it lives in chat, not in a Hub thread.` :
+    item.type==='moment' && item.origin==='chat' ? `<b>The moment composer runs here</b> — Maya started it in chat; you add your photo, the finished Moment lands in the Hub as a shared memory.` :
+    item.type==='moment' ? `<b>The moment viewer runs here</b> — photos + caption.` :
+    item.type==='foryou' ? `<b>Recommendation card.</b> Tapping deep-links to the thing itself (a tool, or the chat). The card nudges; it never gates.` :
+    `<b>System card</b> — informational only.`;
+  const pager = conceptEl._pager;
+  const chatBtn = pager && (item.origin==='chat' || item.chatLink) && !item.archived && !opt.inChat
+    ? `<button class="btn primary" data-gochat style="width:100%;margin-bottom:10px">Open the chat →</button>` : '';
+  sheet.innerHTML = `
+    <div class="grab"></div>
+    <div class="sheet-meta">${chips}</div>
+    <h3>${item.title}</h3>
+    <div class="sheet-body">${item.body || ''}</div>
+    <div class="tool-placeholder">${placeholder}</div>
+    ${chatBtn}
+    <button class="btn ghost" data-close style="width:100%">← Back</button>`;
+  sheet.classList.add('open'); scrim.classList.add('open');
+  sheet.querySelector('[data-close]').addEventListener('click', () => closeSheet(conceptEl));
+  const gc = sheet.querySelector('[data-gochat]');
+  if (gc) gc.addEventListener('click', () => { closeSheet(conceptEl); pager.go(pager.chatIdx); });
+  scrim.onclick = () => closeSheet(conceptEl);
+}
+function closeSheet(conceptEl) {
+  conceptEl.querySelector('[data-sheet]').classList.remove('open');
+  conceptEl.querySelector('[data-scrim]').classList.remove('open');
+}
+
+/* =====================================================================
+   SHARED PANES — pager shell, chat, your corner
+===================================================================== */
+function makePager(root, conceptEl, panes, startIdx) {
+  root.innerHTML = `
+    <div class="pager">
+      <div class="pane-strip">
+        <div class="strip-tabs">
+          ${panes.map((p,i) => `<button data-pane="${i}" ${i===startIdx?'class="on"':''}>${p.label}</button>`).join('')}
+        </div>
+        <button class="crisis-btn" data-crisis>🆘 talk now</button>
+      </div>
+      <div class="pager-viewport" data-pviewport>
+        <div class="pager-track" data-ptrack>
+          ${panes.map(p => `<div class="pane" data-pane-key="${p.key}"></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  conceptEl.querySelector('.statusbar').style.color = '';
+  const track = root.querySelector('[data-ptrack]');
+  const viewport = root.querySelector('[data-pviewport]');
+  const tabs = [...root.querySelectorAll('[data-pane]')];
+  let idx = startIdx;
+  const go = (n) => {
+    idx = Math.max(0, Math.min(panes.length - 1, n));
+    track.style.transform = `translateX(${-idx * 390}px)`;
+    tabs.forEach((t,i) => t.classList.toggle('on', i === idx));
+  };
+  tabs.forEach((t,i) => t.addEventListener('click', () => go(i)));
+  root.querySelector('[data-crisis]').addEventListener('click', () =>
+    openSheet(conceptEl, CRISIS_ITEM, null, {inChat:true}));
+  // horizontal swipe with axis lock: first ~10px decides h vs v; vertical is left to the pane
+  let start = null;
+  viewport.addEventListener('pointerdown', e => { start = {x:e.clientX, y:e.clientY}; });
+  viewport.addEventListener('pointerup', e => {
+    if (!start) return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y; start = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > 1.4 * Math.abs(dy)) go(idx + (dx < 0 ? 1 : -1));
+  });
+  viewport.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 24) {
+      e.preventDefault();
+      if (!viewport._wl || Date.now() - viewport._wl > 450) { viewport._wl = Date.now(); go(idx + (e.deltaX > 0 ? 1 : -1)); }
+    }
+  }, { passive: false });
+  const paneEls = [...root.querySelectorAll('[data-pane-key]')];
+  conceptEl._pager = { go, chatIdx: panes.findIndex(p => p.key === 'chat'), rightIdx: panes.length - 1 };
+  panes.forEach((p, i) => p.build(paneEls[i]));
+  go(startIdx);
+}
+
+function buildChatPane(el, state, conceptEl) {
+  const chat = CHAT[state];
+  const data = STATES[state];
+  const msgHtml = m => {
+    if (m.kind === 'sys') return `<div class="msg sys">${m.text}</div>`;
+    if (m.kind === 'card') {
+      const item = data.items.find(i => i.id === m.id);
+      return `<div class="chatcard" data-card="${m.id}">
+        <div class="cc-label">${m.label}</div>
+        <div class="cc-title">${item.title}</div>
+        ${item.img ? '<div class="imgbox cc-img">photo</div>' : ''}
+        <button class="btn">${m.cta}</button>
+      </div>`;
+    }
+    if (m.kind === 'pointer') {
+      return `<div class="pointer-card" data-pointer>
+        <button class="pc-x" data-dismiss aria-label="dismiss">✕</button>
+        <div class="pc-t">In the meantime — your space is open</div>
+        <div class="pc-b">Grounding, breathing, goals, confessions from teens like you. All of it works before you’re matched, and none of it disappears after.</div>
+        <button class="btn pc-go" data-gohub style="width:100%">Have a look →</button>
+      </div>`;
+    }
+    return `<div class="msg ${m.kind}">${m.text}</div>`;
+  };
+  el.innerHTML = `
+    <div class="chat">
+      <div class="chat-head">
+        <div class="avatar">${chat.initial}</div>
+        <div><div class="cname">${chat.name}</div>
+        <div class="cstatus ${chat.offline ? '' : 'live'}">${chat.status}</div></div>
+      </div>
+      <div class="chat-scroll ${chat.offline ? 'offline' : ''}">${chat.messages.map(msgHtml).join('')}</div>
+      <div class="composer">
+        <button class="cplus">＋</button>
+        <div class="cinput">${chat.composer}</div>
+        <div class="csend">↑</div>
+      </div>
+    </div>`;
+  el.querySelectorAll('[data-card]').forEach(cardEl => {
+    cardEl.addEventListener('click', () => {
+      const item = data.items.find(i => i.id === cardEl.dataset.card);
+      openSheet(conceptEl, item, data.mentor, {inChat:true});
+    });
+  });
+  const ptr = el.querySelector('[data-pointer]');
+  if (ptr) {
+    ptr.querySelector('[data-dismiss]').addEventListener('click', e => { e.stopPropagation(); ptr.remove(); });
+    ptr.querySelector('[data-gohub]').addEventListener('click', () => conceptEl._pager.go(conceptEl._pager.rightIdx));
+  }
+  const sc = el.querySelector('.chat-scroll');
+  sc.scrollTop = sc.scrollHeight;
+}
+
+function buildCornerPane(el, state) {
+  const sq = `<svg class="scribble" width="150" height="14" viewBox="0 0 150 14" fill="none">
+    <path d="M3 9 C 25 3, 45 13, 70 7 S 120 3, 147 8" stroke="#141414" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+  const ring = `<svg class="gmark" width="30" height="30" viewBox="0 0 30 30" fill="none">
+    <path d="M15 3 C 25 2, 28 10, 26 17 C 24 26, 10 29, 5 22 C 0 15, 5 4, 14 3" stroke="#c9a13b" stroke-width="2" stroke-linecap="round"/></svg>`;
+  const under = `<svg class="gmark" style="top:auto;bottom:-9px;left:0" width="140" height="10" viewBox="0 0 140 10" fill="none">
+    <path d="M2 6 C 30 2, 60 9, 100 5 S 130 4, 138 6" stroke="#c9a13b" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+  el.innerHTML = `
+    <div class="corner">
+      <h2>your corner</h2>${sq}
+      ${GOALS.map(g => `<div class="goal">${g.mark==='circle'?ring:''}${g.mark==='underline'?under:''}${g.text}</div>`).join('')}
+      <div class="corner-note"><b>Read-only, on purpose.</b> No streaks, no checkboxes, no nudges — a quiet wall
+        for the things you said matter. Goals get here through the Goal builder; they stay through a rematch.
+        ${state==='a' ? '<br><br><b>Before you’re matched:</b> this space works from minute one.' : ''}</div>
+    </div>`;
+}
+
+/* =====================================================================
+   CONCEPT 1 — PLAYER
+===================================================================== */
+function buildPlayerPane(root, state, conceptEl) {
+  const data = STATES[state];
+  const mentor = data.mentor;
+  let filter = 'all';
+  let items = [];
+  let idx = 0, startIdx = 0;
+
+  root.innerHTML = `
+    <div class="player">
+      <div class="player-top" data-filters></div>
+      <div class="player-viewport" data-viewport tabindex="0" aria-label="feed">
+        <div class="player-track" data-track></div>
+        <div class="player-pos" data-pos></div>
+        <div class="player-nav">
+          <button data-up aria-label="previous / history">↑</button>
+          <button data-down aria-label="next">↓</button>
+        </div>
+        <div class="player-hint">swipe ↑ next · ↓ history · tap to open</div>
+      </div>
+      <div class="pindex" data-pindex hidden>
+        <div class="pindex-head"><h4>Everything, A–Z</h4><button data-pindex-close aria-label="close">✕</button></div>
+        <div class="pindex-scroll" data-pindex-list></div>
+      </div>
+    </div>`;
+
+  const track = root.querySelector('[data-track]');
+  const viewport = root.querySelector('[data-viewport]');
+  const posEl = root.querySelector('[data-pos]');
+  const upBtn = root.querySelector('[data-up]');
+  const downBtn = root.querySelector('[data-down]');
+
+  const FILTERS = [
+    { key:'all', label:'All' },
+    { key:'mentor', label: mentor ? 'With '+mentor : 'With your mentor' },
+    { key:'solo', label:'On your own' },
+    { key:'done', label:'Done' },
+  ];
+  const filtersEl = root.querySelector('[data-filters]');
+  filtersEl.innerHTML = FILTERS.map(f =>
+    `<button class="pfilter ${f.key==='all'?'on':''}" data-f="${f.key}">${f.label}</button>`).join('')
+    + `<button class="pfilter" data-pindex-open style="margin-left:auto">⊞ index</button>`;
+  // the 3am path: a direct index — two taps to any tool, no swiping
+  const pindex = root.querySelector('[data-pindex]');
+  const sortAZ = (a,b) => a.title.localeCompare(b.title);
+  const tools = data.items.filter(i => i.type==='tool' || i.id==='tool-soon').sort(sortAZ);
+  const doneIdx = data.items.filter(i => i.status==='done').sort(sortAZ);
+  const idxRow = i => `<div class="tray-row ${i.status==='done'?'is-done':''}" data-idx-id="${i.id}">
+      <div class="ri">${({swap:'SW',hottake:'HT',deepthought:'DT',note:'NO',moment:'MO',tool:'TL',system:'··'})[i.type]}</div>
+      <div class="rt">${i.title}<span class="sub2">${TYPE_LABEL[i.type]||'coming soon'}${i.dur?' · '+i.dur:''}${i.archived?' · w/ '+i.archived:''}${i.keeps&&(i.status==='done'||state==='c')?' · stays with you':''}</span></div>
+    </div>`;
+  root.querySelector('[data-pindex-list]').innerHTML = `
+    <div class="hsec-title">Tools</div>${tools.map(idxRow).join('')}
+    ${doneIdx.length ? `<div class="hsec-title">Done</div>${doneIdx.map(idxRow).join('')}` : ''}`;
+  root.querySelector('[data-pindex-open]').addEventListener('click', () => pindex.hidden = false);
+  root.querySelector('[data-pindex-close]').addEventListener('click', () => pindex.hidden = true);
+  pindex.querySelectorAll('[data-idx-id]').forEach(r => r.addEventListener('click', () => {
+    openSheet(conceptEl, data.items.find(i => i.id === r.dataset.idxId), mentor);
+  }));
+  filtersEl.querySelectorAll('[data-f]').forEach(b => b.addEventListener('click', () => {
+    filter = b.dataset.f;
+    filtersEl.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b));
+    layout();
+  }));
+
+  function currentItems() {
+    let list = data.items;
+    if (filter === 'mentor') list = list.filter(i => i.mode === 'mentor');
+    if (filter === 'solo')   list = list.filter(i => i.mode === 'solo' || i.type === 'tool');
+    if (filter === 'done')   list = list.filter(i => i.status === 'done');
+    // history (done) sits above the start position; everything else below
+    const hist = list.filter(i => i.status === 'done');
+    const now  = list.filter(i => i.status !== 'done');
+    return { list: [...hist, ...now], start: filter === 'done' ? 0 : hist.length };
+  }
+
+  function tone(i) {
+    if (i.type === 'system') return 'tone-system';
+    if (i.type === 'foryou') return 'tone-foryou';
+    if (i.type === 'tool') return 'tone-tool';
+    return 'tone-mentor';
+  }
+
+  function layout() {
+    const cur = currentItems();
+    items = cur.list; startIdx = cur.start;
+    idx = Math.min(startIdx, items.length - 1);
+    track.innerHTML = items.map((i, n) => `
+      <div class="pcard ${tone(i)} ${i.status==='done'?'is-done':''}" style="top:${n*100}%" data-i="${n}">
+        <div class="pcard-inner">
+          <div class="ptype">
+            ${i.type!=='system' ? `<span class="chip">${TYPE_LABEL[i.type]}</span>` : `<span class="chip">heads up</span>`}
+            ${i.mode==='mentor' && i.status!=='locked' ? `<span class="chip">${i.archived ? 'w/ '+i.archived+' · kept' : (mentor ? 'with '+mentor : '')}</span>` : ''}
+            ${i.keeps ? `<span class="chip keeps">stays with you</span>` : ''}
+            ${i.status==='locked' ? `<span class="chip">🔒 at match</span>` : ''}
+            ${i.status==='done' ? `<span class="chip">done${i.when?' · '+i.when:''}</span>` : ''}
+          </div>
+          <h3>${i.title}</h3>
+          <div class="pbody">${i.body||''}</div>
+          ${i.img ? `<div class="imgbox pimg">photo</div>` : ''}
+          <div class="pfoot">
+            <span class="pstatus">${i.statusText || (i.dur ? i.dur : '')}</span>
+            ${i.status!=='done' && i.status!=='locked'
+              ? `<button class="btn">${i.cta || 'Open'}</button>`
+              : `<button class="btn quiet">${i.status==='locked' ? 'Peek' : 'Look back'}</button>`}
+          </div>
+        </div>
+      </div>`).join('');
+    track.querySelectorAll('.pcard').forEach(card => {
+      card.addEventListener('click', () => openSheet(conceptEl, items[+card.dataset.i], mentor));
+    });
+    go(idx, false);
+  }
+
+  function go(n, animate = true) {
+    idx = Math.max(0, Math.min(items.length - 1, n));
+    track.style.transition = animate ? '' : 'none';
+    track.style.transform = `translateY(${-idx * 100}%)`;
+    if (!animate) requestAnimationFrame(() => track.style.transition = '');
+    const inHist = idx < startIdx && filter !== 'done';
+    posEl.innerHTML = inHist
+      ? `<span class="histmark">history · ${startIdx - idx} back</span>`
+      : `${idx - startIdx + 1} of ${items.length - startIdx}`;
+    upBtn.disabled = idx === 0;
+    downBtn.disabled = idx === items.length - 1;
+  }
+
+  upBtn.addEventListener('click', () => go(idx - 1));
+  downBtn.addEventListener('click', () => go(idx + 1));
+
+  // touch / pointer swipe
+  let dragY = null, dragged = false;
+  viewport.addEventListener('pointerdown', e => { dragY = e.clientY; dragged = false; });
+  viewport.addEventListener('pointermove', e => {
+    if (dragY === null) return;
+    if (Math.abs(e.clientY - dragY) > 12) dragged = true;
+  });
+  let dragX = null;
+  viewport.addEventListener('pointerdown', e => { dragX = e.clientX; });
+  viewport.addEventListener('pointerup', e => {
+    if (dragY === null) return;
+    const dy = e.clientY - dragY, dx = e.clientX - (dragX ?? e.clientX);
+    dragY = null; dragX = null;
+    // axis lock: a mostly-horizontal drag belongs to the pager, not the feed
+    if (Math.abs(dy) > 50 && Math.abs(dy) > 1.4 * Math.abs(dx)) { go(idx + (dy < 0 ? 1 : -1)); }
+  });
+  // suppress the click-through after a real drag
+  viewport.addEventListener('click', e => { if (dragged) { e.stopPropagation(); dragged = false; } }, true);
+  // wheel + keys for desktop reviewers
+  let wheelLock = 0;
+  viewport.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // horizontal wheel belongs to the pager
+    e.preventDefault();
+    const now = Date.now();
+    if (now - wheelLock < 400 || Math.abs(e.deltaY) < 12) return;
+    wheelLock = now;
+    go(idx + (e.deltaY > 0 ? 1 : -1));
+  }, { passive: false });
+  viewport.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); go(idx + 1); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); go(idx - 1); }
+  });
+
+  layout();
+  return () => {};
+}
+
+/* =====================================================================
+   CONCEPT 2 — CLASSIC HOMEPAGE
+===================================================================== */
+function buildHomepage(root, state, conceptEl, opts) {
+  const data = STATES[state];
+  const mentor = data.mentor;
+  conceptEl.querySelector('.statusbar').style.color = '';
+  const items = data.items;
+  const abbr = t => ({swap:'SW', hottake:'HT', deepthought:'DT', note:'NO', moment:'MO', tool:'TL', foryou:'FY', system:'··'}[t]);
+
+  const fy = items.filter(i => i.type === 'foryou');
+  const done = items.filter(i => i.status === 'done');
+  const live = items.filter(i => i.status !== 'done' && i.type !== 'foryou' && i.id !== 'countdown');
+
+  const rowHtml = i => `
+    <div class="hrow ${i.mode==='mentor'?'is-mentor':''} ${i.status==='done'?'is-done':''}" data-id="${i.id}">
+      <div class="ri">${abbr(i.type)}</div>
+      <div class="rmid">
+        <div class="rt">${i.title}</div>
+        <div class="rs">
+          <span>${TYPE_LABEL[i.type]}</span>
+          ${i.mode==='mentor' && i.status!=='locked' ? `<span>· ${i.archived ? 'w/ '+i.archived : 'with '+mentor}</span>` : ''}
+          ${i.keeps && (i.status==='done'||state==='c') ? `<span class="kept">· kept — stays with you</span>` : ''}
+          ${i.statusText ? `<span>· ${i.statusText}</span>` : ''}
+          ${i.status==='new' ? `<span style="color:var(--accent);font-weight:700">· new</span>` : ''}
+          ${i.status==='done' && i.when ? `<span>· ${i.when}</span>` : ''}
+        </div>
+      </div>
+      ${i.status==='new' ? '<div class="dot" title="new"></div>' : ''}
+      ${i.status==='locked' ? '<div class="lock">🔒 at match</div>' : ''}
+    </div>`;
+
+  const toolHtml = i => i.type === 'system'
+    ? `<div class="tool-card slot" data-id="${i.id}">
+         <div class="tt">${i.title}</div><div class="ts">no setup · no unlock</div></div>`
+    : `<div class="tool-card" data-id="${i.id}">
+         <div class="ti">${abbr(i.type)}</div><div class="tt">${i.title}</div>
+         <div class="ts">${i.statusText || i.dur || ''}</div></div>`;
+
+  const fySec = `
+    <div class="hsec">
+      <div class="hsec-title">For you <span class="cnt">· nudges, never gates</span></div>
+      <div class="fy-scroll">
+        ${fy.map(i => `<div class="fy-card" data-id="${i.id}">
+          <div class="ft">${i.title}</div><div class="fb">${i.body}</div>
+          <div class="fcta">${i.cta || 'Open'} →</div></div>`).join('')}
+      </div>
+    </div>`;
+
+  const doneSec = done.length ? `
+    <div class="hsec">
+      <div class="hsec-title">Done <span class="cnt">· ${done.length}</span></div>
+      ${done.map(rowHtml).join('')}
+    </div>` : '';
+
+  let sections = '';
+  if (opts.model === 'mode') {
+    const withMentor = live.filter(i => i.mode === 'mentor');
+    const solo = live.filter(i => i.mode !== 'mentor');
+    sections = `
+      ${fySec}
+      <div class="hsec">
+        <div class="hsec-title">${mentor ? 'Do with '+mentor : 'Do with your mentor'}
+          ${state==='a' ? '<span class="cnt">· unlocks at match</span>' : ''}</div>
+        ${withMentor.map(rowHtml).join('')}
+      </div>
+      <div class="hsec">
+        <div class="hsec-title">Do on your own <span class="cnt">· always here</span></div>
+        <div class="tool-grid">${solo.map(toolHtml).join('')}</div>
+      </div>
+      ${doneSec}`;
+  } else {
+    const CATS = [
+      { label:'Connect', match: i => ['swap','hottake','note'].includes(i.type) },
+      { label:'Reflect', match: i => i.type==='deepthought' || i.id==='tool-goals',
+        note:'assumption: Goal builder filed under Reflect — could equally be “Grow”. Someone has to decide.' },
+      { label:'Calm down', match: i => ['tool-breathe','tool-ground'].includes(i.id) },
+      { label:'Celebrate', match: i => i.type==='moment' },
+    ];
+    const filed = new Set();
+    const catSecs = CATS.map(cat => {
+      const rows = live.filter(i => cat.match(i));
+      rows.forEach(i => filed.add(i.id));
+      if (!rows.length) return '';
+      return `<div class="hsec">
+        <div class="hsec-title">${cat.label}</div>
+        ${cat.note ? `<div class="hsec-note">⚠ ${cat.note}</div>` : ''}
+        ${rows.map(rowHtml).join('')}
+      </div>`;
+    }).join('');
+    const unfiled = live.filter(i => !filed.has(i.id));
+    sections = `
+      ${fySec}
+      ${catSecs}
+      ${unfiled.length ? `<div class="hsec">
+        <div class="hsec-title">…and more</div>
+        <div class="hsec-note">⚠ unfileable: future tools have no category yet — the model’s weak spot</div>
+        <div class="tool-grid">${unfiled.map(toolHtml).join('')}</div>
+      </div>` : ''}
+      ${doneSec}`;
+  }
+
+  const banner =
+    state === 'a' ? `<div class="home-banner" data-id="countdown">
+        <div class="bt">Your mentor match is close</div>
+        <div class="bb">In the meantime, this space is already yours — the tools below work right now.</div>
+        <div class="bcount">≈ 2h 14m</div></div>` :
+    state === 'c' ? `<div class="home-banner" data-id="fy-c1">
+        <div class="bt">Jordan just joined your space</div>
+        <div class="bb">Your deep thoughts and goals moved with you. Things you made with Maya are kept in Done.</div></div>` : '';
+
+  root.innerHTML = `
+    <div class="home">
+      <div class="home-head">
+        <h2>your space</h2>
+        <div class="home-sub">${state==='a' ? 'yours before you’re even matched' : 'everything you two do, and everything that’s just yours'}</div>
+      </div>
+      ${banner}
+      ${sections}
+    </div>`;
+
+  root.querySelectorAll('[data-id]').forEach(el2 => {
+    el2.addEventListener('click', () => {
+      const item = items.find(i => i.id === el2.dataset.id);
+      if (item) openSheet(conceptEl, item, mentor);
+    });
+  });
+  return () => {};
+}
+</script>
+</body>
+</html>

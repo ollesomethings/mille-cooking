@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "../First try/mono",
+      "../First try/somethings-ui",
+      "../First try/somethings-demo"
+    ]
+  }
+}

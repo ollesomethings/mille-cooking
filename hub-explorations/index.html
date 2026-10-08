@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hub layout exploration — MMT-0 · craft pass</title>
+<style>
+  /* ================= tokens ================= */
+  :root {
+    --accent: #5b5bd6;
+    --accent-tint: #eeeefb;
+    --ink: #1a1a1a;
+    --ink-2: #6b6b6b;
+    --ink-3: #a0a0a0;
+    --ground: #f7f7f5;
+    --card: #ffffff;
+    --green: #2f9e5f;
+    --red: #c92a21;
+    --red-tint: #ffeeee;
+    --hair: rgba(0,0,0,.08);
+    --r-sm: 12px; --r-card: 20px; --r-sheet: 28px; --r-pill: 44px;
+    --sh-rest: 0 1px 2px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.04);
+    --sh-raised: 0 2px 4px rgba(0,0,0,.06), 0 12px 32px rgba(0,0,0,.10);
+    --sh-overlay: 0 4px 12px rgba(0,0,0,.08), 0 24px 64px rgba(0,0,0,.16);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, Inter, system-ui, sans-serif;
+    background: #efefec; color: var(--ink);
+    padding: 36px 24px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* type scale */
+  .t-d34 { font-size: 34px; line-height: 40px; font-weight: 600; letter-spacing: -0.02em; }
+  .t-d28 { font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.02em; }
+  .t-t22 { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em; }
+  .t-b17 { font-size: 17px; line-height: 22px; }
+  .t-s15 { font-size: 15px; line-height: 20px; }
+  .t-c13 { font-size: 13px; line-height: 18px; }
+  .t-l11 { font-size: 11px; line-height: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  .c2 { color: var(--ink-2); } .c3 { color: var(--ink-3); }
+
+  /* ================= exploration page chrome ================= */
+  .page-head { max-width: 1360px; margin: 0 auto 26px; }
+  .page-head .tag {
+    display: inline-block; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--accent); background: var(--accent-tint);
+    padding: 4px 8px; border-radius: 5px; margin-bottom: 10px;
+  }
+  .page-head h1 { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -0.01em; }
+  .page-head p { color: var(--ink-2); font-size: 14px; line-height: 1.55; margin-top: 6px; max-width: 72ch; }
+  .stage { max-width: 1360px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 44px; justify-content: center; align-items: flex-start; }
+  .unit { width: 410px; display: flex; flex-direction: column; gap: 12px; }
+  .unit h2 { font-size: 15px; font-weight: 600; }
+  .unit .sub { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .seg { display: flex; background: #e3e3e0; border-radius: 9px; padding: 3px; }
+  .seg button {
+    border: 0; background: transparent; font: inherit; font-size: 12.5px; font-weight: 600;
+    color: var(--ink-2); padding: 6px 12px; border-radius: 7px; cursor: pointer;
+  }
+  .seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .seg-label { font-size: 11px; color: var(--ink-3); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .notecard {
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-2);
+    background: #fff; border: 1px solid #e2e2df; border-radius: 10px; padding: 14px 16px;
+  }
+  .notecard strong { color: var(--ink); }
+  .flag {
+    margin-top: 10px; padding: 10px 12px; border-radius: 8px;
+    background: #fff7ed; border: 1px solid #fed7aa; font-size: 12.5px; color: #7c4a12;
+  }
+  .flag b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+
+  /* ================= phone shell ================= */
+  .phone {
+    width: 390px; height: 844px; background: var(--ground);
+    border-radius: 54px; position: relative; overflow: hidden; margin: 6px 10px;
+    box-shadow: 0 0 0 10px #17171a, 0 0 0 11px #3a3a3e, 0 30px 60px rgba(0,0,0,.28);
+    user-select: none; -webkit-user-select: none;
+  }
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 54px; z-index: 60;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 30px 0; pointer-events: none;
+  }
+  .sb-time { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .island {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 118px; height: 34px; border-radius: 20px; background: #0a0a0c;
+  }
+  .homebar {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px; background: rgba(0,0,0,.28); z-index: 60; pointer-events: none;
+  }
+  .pane-head {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 30;
+    padding: 54px 16px 8px;
+    background: rgba(247,247,245,.86); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  }
+  .pane-head.white { background: rgba(255,255,255,.88); }
+  .hairline { position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--hair); }
+
+  /* buttons & pills */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 48px; padding: 0 20px; border-radius: 14px; border: 0;
+    font: inherit; font-size: 15px; line-height: 20px; font-weight: 600; cursor: pointer;
+    background: var(--ink); color: #fff; white-space: nowrap;
+  }
+  .btn.primary { background: var(--accent); }
+  .btn.ghost { background: rgba(0,0,0,.05); color: var(--ink); }
+  .talk-pill {
+    display: inline-flex; align-items: center; border: 0; cursor: pointer;
+    background: var(--red-tint); color: var(--red); font: inherit;
+    font-size: 13px; line-height: 18px; font-weight: 600;
+    height: 36px; padding: 0 14px; border-radius: 44px;
+    /* 44px hit target via transparent halo */
+    box-shadow: 0 0 0 4px transparent; position: relative;
+  }
+  .talk-pill::after { content: ''; position: absolute; inset: -4px; border-radius: 48px; }
+
+  /* skeleton shimmer */
+  .skel { position: relative; overflow: hidden; background: #ececea; border-radius: var(--r-sm); }
+  .skel::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(100deg, rgba(244,244,242,0) 20%, rgba(244,244,242,.95) 50%, rgba(244,244,242,0) 80%);
+    transform: translateX(-100%); animation: shimmer 1.6s linear infinite;
+  }
+  @keyframes shimmer { to { transform: translateX(100%); } }
+
+  /* ================= chat ================= */
+  .chat-body { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--ground); }
+  .chat-scroll {
+    flex: 1; overflow-y: auto; overscroll-behavior: contain;
+    padding: 118px 16px 16px; display: flex; flex-direction: column;
+    scrollbar-width: none;
+  }
+  .chat-scroll::-webkit-scrollbar { display: none; }
+  .avatar {
+    border-radius: 50%; background: #e4e4f6; color: var(--accent);
+    display: flex; align-items: center; justify-content: center; font-weight: 600; flex: none;
+  }
+  .bubble {
+    max-width: 78%; padding: 8px 12px; font-size: 15px; line-height: 20px;
+    width: fit-content; position: relative;
+  }
+  .bubble.them { background: #efefed; color: var(--ink); align-self: flex-start; }
+  .bubble.me { background: var(--accent); color: #fff; align-self: flex-end; }
+  .cap { text-align: center; font-size: 11px; line-height: 13px; font-weight: 500; color: var(--ink-3); margin: 16px 0 8px; }
+  .sysline { text-align: center; font-size: 13px; line-height: 18px; color: var(--ink-2); margin: 16px 24px 0; }
+  .mrow { display: flex; align-items: flex-end; gap: 8px; }
+  .composer-wrap { flex: none; z-index: 35; background: rgba(247,247,245,.92); backdrop-filter: blur(20px); }
+  .composer { display: flex; gap: 8px; align-items: center; padding: 8px 16px 32px; }
+  .cinput {
+    flex: 1; height: 44px; border-radius: 44px; background: #fff; border: 1px solid var(--hair);
+    display: flex; align-items: center; padding: 0 18px; font-size: 15px; color: var(--ink-3);
+  }
+  .round { border-radius: 50%; border: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; font: inherit; }
+  .chatcard {
+    width: 100%; background: var(--card); border-radius: var(--r-card); padding: 16px;
+    box-shadow: var(--sh-rest); cursor: pointer;
+  }
+
+  /* offline panel */
+  .offline-panel {
+    position: relative; margin: 0 16px 8px; border-radius: var(--r-card);
+    background: rgba(255,255,255,.82); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--sh-raised); padding: 16px; z-index: 34;
+  }
+
+  /* ================= pager chrome ================= */
+  .dots { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 55; display: flex; gap: 8px; pointer-events: none; }
+  .dot6 { width: 6px; height: 6px; border-radius: 50%; }
+  .chev {
+    position: absolute; top: 50%; margin-top: -32px; z-index: 50;
+    width: 24px; height: 64px; border: 0; cursor: pointer; padding: 0;
+    background: rgba(255,255,255,.85); backdrop-filter: blur(8px);
+    box-shadow: var(--sh-rest); color: var(--ink-2); font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chev::before { content: ''; position: absolute; top: -8px; bottom: -8px; left: -12px; right: -12px; }
+
+  /* ================= empty hub pane ================= */
+  .hub-scroll { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding: 120px 16px 64px; scrollbar-width: none; }
+  .hub-scroll::-webkit-scrollbar { display: none; }
+
+  /* ================= your corner pane ================= */
+  .corner { position: absolute; inset: 0; overflow-y: auto; background: #faf3e2; padding: 74px 24px 60px; scrollbar-width: none; }
+  .corner::-webkit-scrollbar { display: none; }
+  .corner .goal { font-size: 22px; line-height: 28px; font-weight: 600; color: #141414; margin-top: 26px; position: relative; }
+  .corner .gmark { position: absolute; pointer-events: none; }
+  .corner-note { margin-top: 44px; font-size: 13px; line-height: 18px; color: #6b6250; }
+  .corner-note b { color: #3d382c; font-weight: 600; }
+
+  /* ================= player (concept 1) ================= */
+  .pfilters {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 30;
+    display: flex; gap: 4px; align-items: center; padding: 58px 12px 8px;
+    background: rgba(247,247,245,.86); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  }
+  .pfilter-scroll { flex: 1; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+  .pfilter-scroll::-webkit-scrollbar { display: none; }
+  .pchip {
+    position: relative; border: 0; background: transparent; cursor: pointer; font: inherit;
+    font-size: 13px; line-height: 18px; font-weight: 600; color: var(--ink-2);
+    height: 36px; padding: 0 13px; border-radius: 44px; flex: none;
+  }
+  .pchip::before { content: ''; position: absolute; inset: -4px; border-radius: 48px; }
+  .pchip .pill-bg { position: absolute; inset: 0; border-radius: 44px; background: #1a1a1a; }
+  .pchip span { position: relative; z-index: 1; }
+  .pchip.on { color: #fff; }
+  .feed-viewport { position: absolute; left: 0; right: 0; overflow: hidden; }
+  .fcard {
+    position: absolute; left: 12px; right: 12px;
+    background: var(--card); border-radius: var(--r-card); box-shadow: var(--sh-rest);
+    padding: 22px 20px 20px; display: flex; flex-direction: column; cursor: pointer;
+  }
+  .fcard.locked { background: transparent; border: 1.5px dashed rgba(0,0,0,.14); box-shadow: none; }
+  .fcard.done .fc-in { opacity: .62; }
+  .fcard.slot { background: transparent; border: 1.5px dashed rgba(0,0,0,.14); box-shadow: none; }
+  .fc-in { display: flex; flex-direction: column; height: 100%; }
+  .newdot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  .fpos { position: absolute; left: 20px; bottom: 46px; z-index: 40; font-size: 11px; line-height: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); pointer-events: none; }
+  .vchev {
+    position: absolute; right: 12px; z-index: 40;
+    width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(255,255,255,.82); backdrop-filter: blur(8px);
+    box-shadow: var(--sh-rest); color: var(--ink-2); font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .idxrow { display: flex; gap: 12px; align-items: center; min-height: 52px; padding: 4px 2px; cursor: pointer; border-radius: 12px; }
+  .idxrow .ri {
+    flex: none; width: 36px; height: 36px; border-radius: 12px; background: #f0f0ee;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--ink-2);
+  }
+
+  /* ================= hub (concept 2) ================= */
+  .hub-head2 {
+    position: absolute; top: 0; left: 0; right: 0; height: 100px; z-index: 30;
+    background: rgba(247,247,245,.86); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    display: flex; align-items: flex-end; justify-content: space-between; padding: 0 20px 8px;
+  }
+  .hub-scroll2 { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding: 112px 20px 60px; scrollbar-width: none; }
+  .hub-scroll2::-webkit-scrollbar { display: none; }
+  .mseg { display: flex; background: rgba(0,0,0,.06); border-radius: 44px; padding: 2px; flex: none; margin-bottom: 2px; }
+  .mseg button {
+    position: relative; border: 0; background: transparent; font: inherit; cursor: pointer;
+    font-size: 13px; line-height: 18px; font-weight: 600; color: var(--ink-2);
+    height: 32px; padding: 0 12px; border-radius: 44px;
+  }
+  .mseg button::before { content:''; position: absolute; inset: -6px; border-radius: 48px; }
+  .mseg button.on { color: var(--ink); }
+  .mseg .mseg-bg { position: absolute; inset: 0; border-radius: 44px; background: #fff; box-shadow: var(--sh-rest); }
+  .mseg span { position: relative; z-index: 1; }
+  .hrow2 {
+    display: flex; gap: 12px; align-items: center; background: var(--card);
+    border-radius: 16px; box-shadow: var(--sh-rest); padding: 12px 14px; min-height: 64px;
+    margin-bottom: 12px; cursor: pointer;
+  }
+  .hrow2 .ri {
+    flex: none; width: 40px; height: 40px; border-radius: 12px; background: #f0f0ee;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--ink-2);
+  }
+  .hrow2.dim { opacity: .62; }
+  .hsec-label { margin: 20px 2px 10px; }
+  .hsec-note { margin: -4px 2px 10px; font-size: 13px; line-height: 18px; color: #a05e14; }
+  .fycard2 {
+    flex: none; width: 232px; background: var(--card); border-radius: var(--r-card);
+    box-shadow: var(--sh-rest); padding: 16px; cursor: pointer; display: flex; flex-direction: column; min-height: 116px;
+  }
+
+  /* ================= chat shelf (concept 3) ================= */
+  .shelf {
+    display: flex; gap: 6px; align-items: center; height: 56px; padding: 0 12px;
+    background: rgba(247,247,245,.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    overflow-x: auto; scrollbar-width: none; touch-action: pan-x;
+  }
+  .shelf::-webkit-scrollbar { display: none; }
+  .shelf-chip {
+    position: relative; flex: none; border: 0; cursor: pointer; font: inherit;
+    font-size: 13px; line-height: 18px; font-weight: 600; color: var(--ink);
+    height: 36px; padding: 0 14px; border-radius: 44px; background: #fff;
+    box-shadow: var(--sh-rest);
+  }
+  .shelf-chip::before { content:''; position: absolute; inset: -4px; border-radius: 48px; }
+  .shelf-chip.more { background: transparent; box-shadow: none; color: var(--accent); }
+  .tydots { display: inline-flex; gap: 4px; align-items: center; }
+  .tydots span { width: 7px; height: 7px; border-radius: 50%; background: #b9b9b6; display: inline-block; }
+
+  /* ================= index pane (concept 3) ================= */
+  .index-scroll { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding: 112px 20px 60px; scrollbar-width: none; }
+  .index-scroll::-webkit-scrollbar { display: none; }
+
+  /* ================= comparison ================= */
+  .compare { max-width: 1360px; margin: 52px auto 0; }
+  .compare-card { background: #fff; border: 1px solid #e2e2df; border-radius: 12px; overflow-x: auto; }
+  .compare table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13px; line-height: 18px; }
+  .compare th, .compare td { text-align: left; padding: 11px 14px; border-bottom: 1px solid #efefec; vertical-align: top; }
+  .compare th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); background: #fafaf8; font-weight: 600; }
+  .compare td:first-child { font-weight: 600; width: 230px; }
+  .compare .s { font-weight: 600; margin-right: 6px; }
+  .compare .s.good { color: var(--green); } .compare .s.mid { color: #a05e14; } .compare .s.bad { color: var(--red); }
+  .reco {
+    margin-top: 16px; background: #fff; border: 1px solid #e2e2df; border-left: 4px solid var(--accent);
+    border-radius: 12px; padding: 18px 20px; font-size: 14px; line-height: 1.6; color: var(--ink-2);
+  }
+  .reco h3 { font-size: 15px; color: var(--ink); margin-bottom: 6px; font-weight: 600; }
+  .reco strong { color: var(--ink); }
+
+  /* ================= homeplace (concept: iOS-Home mechanics) ================= */
+  .wgrid { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding: 112px 16px 168px; scrollbar-width: none; }
+  .wgrid::-webkit-scrollbar { display: none; }
+  .wwrap { display: flex; flex-wrap: wrap; gap: 16px; }
+  .wcard {
+    position: relative; background: var(--card); border-radius: var(--r-card);
+    box-shadow: var(--sh-rest); padding: 16px; cursor: pointer;
+  }
+  .wshadow { position: absolute; inset: 0; border-radius: var(--r-card); box-shadow: var(--sh-raised); pointer-events: none; }
+  .xbadge {
+    position: absolute; top: -8px; left: -8px; z-index: 6; width: 28px; height: 28px;
+    border-radius: 50%; border: 0; cursor: pointer; background: #fff; color: var(--ink-2);
+    box-shadow: var(--sh-rest); font-size: 13px; display: flex; align-items: center; justify-content: center;
+  }
+  .xbadge::before { content: ''; position: absolute; inset: -8px; }
+  .dock {
+    position: absolute; left: 16px; right: 16px; bottom: 48px; height: 72px; z-index: 40;
+    border-radius: var(--r-sheet); background: rgba(255,255,255,.72);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    box-shadow: var(--sh-rest); display: flex; gap: 16px; align-items: center; justify-content: center;
+  }
+  .dockslot {
+    position: relative; width: 48px; height: 48px; border-radius: 16px; border: 0; cursor: pointer;
+    background: #f0f0ee; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; letter-spacing: .02em; color: var(--ink);
+    font-family: inherit; padding: 0 2px; text-align: center; line-height: 12px;
+  }
+  .dockslot.empty { background: transparent; border: 1.5px dashed rgba(0,0,0,.16); cursor: default; }
+  .mrowi { display: flex; gap: 8px; align-items: center; min-height: 44px; border-radius: var(--r-sm); padding: 0 8px; margin: 0 -8px; cursor: pointer; }
+  .mrowi:active { background: rgba(0,0,0,.04); }
+  .greenchip {
+    display: inline-block; font-size: 11px; line-height: 13px; font-weight: 600;
+    color: var(--green); background: #e8f6ee; padding: 4px 8px; border-radius: 44px;
+  }
+  .rec-tile { border: 1.5px dashed #c9c9ef; background: var(--accent-tint); box-shadow: none; }
+  .devbtn {
+    border: 0; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.12); cursor: pointer;
+    font: inherit; font-size: 12.5px; font-weight: 600; color: var(--accent);
+    padding: 6px 12px; border-radius: 8px;
+  }
+  .donepill {
+    border: 0; cursor: pointer; font: inherit; font-size: 13px; line-height: 18px; font-weight: 600;
+    background: var(--ink); color: #fff; height: 32px; padding: 0 14px; border-radius: 44px; position: relative;
+  }
+  .donepill::before { content: ''; position: absolute; inset: -6px; border-radius: 48px; }
+
+  /* ================= today & always ================= */
+  .always {
+    position: absolute; top: 98px; left: 0; right: 0; z-index: 25;
+    display: flex; gap: 12px; align-items: stretch; padding: 8px 16px 16px;
+    background: rgba(247,247,245,.86); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--hair);
+  }
+  .atile {
+    position: relative; width: 72px; min-height: 72px; border-radius: 16px; border: 0; cursor: pointer;
+    background: #fff; box-shadow: var(--sh-rest); font-family: inherit;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    font-size: 11px; line-height: 13px; font-weight: 600; color: var(--ink); padding: 0 4px; text-align: center;
+  }
+  .atile .cnt { font-size: 22px; line-height: 28px; font-weight: 600; }
+  .atile.empty { background: transparent; border: 1.5px dashed rgba(0,0,0,.16); box-shadow: none; color: var(--ink-3); cursor: default; }
+  .stream { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding: 216px 16px 152px; scrollbar-width: none; }
+  .stream::-webkit-scrollbar { display: none; }
+  .remnant { opacity: .55; }
+  .strip {
+    position: absolute; left: 16px; right: 16px; bottom: 48px; height: 72px; z-index: 40;
+    border-radius: var(--r-sheet); background: rgba(255,255,255,.72);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: var(--sh-rest);
+    display: flex; gap: 8px; align-items: center; padding: 0 12px;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .strip::-webkit-scrollbar { display: none; }
+  .progress { height: 6px; border-radius: 3px; background: #ececea; overflow: hidden; }
+  .progress > div { height: 100%; width: 55%; border-radius: 3px; background: var(--accent); }
+
+  /* ================= the spine ================= */
+  .cover {
+    position: absolute; top: 98px; left: 0; right: 0; z-index: 25;
+    display: flex; gap: 8px; align-items: center; padding: 8px 16px 16px;
+    background: rgba(247,247,245,.86); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--hair); overflow-x: auto; scrollbar-width: none;
+  }
+  .cover::-webkit-scrollbar { display: none; }
+  .sticker {
+    position: relative; flex: none; height: 44px; border-radius: 44px; border: 0; cursor: pointer;
+    background: #fff; box-shadow: var(--sh-rest); font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px; padding: 0 14px;
+    font-size: 13px; line-height: 18px; font-weight: 600; color: var(--ink);
+  }
+  .tl { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding: 176px 16px 152px 40px; scrollbar-width: none; }
+  .tl::-webkit-scrollbar { display: none; }
+  .tl-inner { position: relative; }
+  .tl-inner::before { content: ''; position: absolute; left: -18px; top: 8px; bottom: 8px; width: 2px; border-radius: 1px; background: #e4e4e1; }
+  .tl-entry { position: relative; background: var(--card); border-radius: 16px; box-shadow: var(--sh-rest); padding: 12px 16px; margin-bottom: 12px; cursor: pointer; }
+  .tl-entry .tl-node { position: absolute; left: -22px; top: 20px; width: 10px; height: 10px; border-radius: 50%; background: #d4d4d0; border: 2px solid var(--ground); }
+  .tl-entry.outline { background: transparent; box-shadow: none; border: 1.5px dashed rgba(0,0,0,.18); }
+  .tl-entry.outline .tl-node { background: var(--accent); }
+  .daycap { margin: 20px 0 8px; }
+  .seam { display: flex; align-items: center; gap: 8px; margin: 24px 0; }
+  .seam .ln { flex: 1; height: 1px; background: rgba(0,0,0,.12); }
+  .chapterband { background: #ececea; border-radius: var(--r-card); padding: 16px; box-shadow: none; cursor: pointer; }
+
+  /* ================= sheet ================= */
+  .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.24); z-index: 70; }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 71;
+    background: #fff; border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+    box-shadow: var(--sh-overlay); padding: 8px 22px 42px;
+  }
+  .grab { width: 36px; height: 5px; border-radius: 3px; background: #d9d9d6; margin: 8px auto 16px; }
+
+  @media (max-width: 480px) {
+    body { padding: 20px 10px 60px; }
+    .unit { width: 100%; max-width: 410px; }
+    .phone { zoom: 0.9; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/framer-motion@11.11.17/dist/framer-motion.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/htm/3.1.1/htm.min.js"></script>
+
+<script>
+const { useState, useEffect, useRef, useMemo } = React;
+const FM = window.Motion || window.framerMotion || window.FramerMotion;
+const { motion, AnimatePresence, useMotionValue, useTransform, animate } = FM;
+const html = htm.bind(React.createElement);
+
+/* ============ motion vocabulary (from spec) ============ */
+const SPRING    = { type: 'spring', stiffness: 380, damping: 34, mass: 0.9 };
+const SPRING_SM = { type: 'spring', stiffness: 500, damping: 30 };
+const TAP = { scale: 0.97 };
+const enter = (i = 0) => ({
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1], delay: Math.min(i, 8) * 0.04 },
+});
+const EXIT = { opacity: 0, y: 8, transition: { duration: 0.18 } };
+const W = 390;
+
+/* ============ content (low-fi on purpose) ============ */
+const CHAT = {
+  a: {
+    name: 'Somethings', initial: 'S', statusKind: 'countdown',
+    composer: 'Say hi once you’re matched…',
+    messages: [
+      { kind: 'cap',  text: 'Today 6:41 PM' },
+      { kind: 'sys',  text: 'We’re matching you with a mentor who gets it — usually a few hours.' },
+      { kind: 'them', text: 'Hey — welcome 👋' },
+      { kind: 'them', text: 'While we find your person, your space next door already works. No tutorial, no login quests. Poke around.' },
+    ],
+  },
+  b: {
+    name: 'Maya', initial: 'M', status: 'online now', online: true,
+    composer: 'Message Maya…',
+    messages: [
+      { kind: 'cap',  text: 'Today 4:12 PM' },
+      { kind: 'them', text: 'okok important question' },
+      { kind: 'them', text: 'how did tryouts go' },
+      { kind: 'me',   text: 'I MADE THE TEAM' },
+      { kind: 'me',   text: 'coach said my 200m was top 3' },
+      { kind: 'them', text: 'STOP. I told you!! 🎉' },
+      { kind: 'cap',  text: '4:31 PM' },
+      { kind: 'card', id: 'mom-2', label: 'Moment', title: 'Making the team 🎉', cta: 'Add your photo',
+        line: 'The Moment composer runs here — your photo next to Maya’s, one shared memory. It lands in the Hub after.' },
+      { kind: 'them', text: 'also left you a swap for later, zero rush. go celebrate' },
+      { kind: 'me',   text: 'pizza with the team rn 🍕' },
+    ],
+  },
+  c: {
+    name: 'Jordan', initial: 'J', status: 'online now', online: true,
+    composer: 'Message Jordan…',
+    messages: [
+      { kind: 'cap',  text: 'Today 9:02 AM' },
+      { kind: 'sys',  text: 'You’ve been matched with Jordan. Your deep thoughts and goals came with you.' },
+      { kind: 'them', text: 'hey! I’m Jordan' },
+      { kind: 'them', text: 'read the intro you okayed sharing — zero pressure to perform here. mostly excited about the Spider-Verse thing' },
+      { kind: 'card', id: 'swap-j', label: 'Swap', title: 'First swap: what’s your comfort food?', cta: 'Answer',
+        line: 'The swap flow runs here — you answer, then you both reveal at once. The finished swap lands in the Hub.' },
+      { kind: 'them', text: 'that’s there whenever. no timer on any of this' },
+    ],
+  },
+};
+/* Hub items per state. origin:'chat' = mirror of a chat card (doing happens in the thread). */
+const TOOLS = [
+  { id:'t-breathe', label:'Tool', ri:'TL', title:'Box breathing', body:'Four counts in, hold, out, hold. A 2-minute reset you can do anywhere.', status:'new', mode:'solo', keeps:true, sub:'2 min', line:'The guided breathing screen runs here — never auto-launched.', cta:'Start' },
+  { id:'t-ground', label:'Tool', ri:'TL', title:'5-4-3-2-1 grounding', body:'Name 5 things you can see, 4 you can touch… pulls a racing head back into the room.', status:'new', mode:'solo', keeps:true, sub:'3 min', line:'The guided grounding screen runs here.', cta:'Start' },
+  { id:'t-confess', label:'Tool', ri:'TL', title:'Show me I’m not alone', body:'Anonymous confessions from other teens. Read, relate, leave a ❤️ — no comments, no clout.', status:'new', mode:'solo', keeps:true, sub:'read', line:'The confessions feed runs here.', cta:'Read' },
+  { id:'t-goals', label:'Tool', ri:'TL', title:'Goal builder', body:'Break one thing you want into steps small enough to actually start.', status:'pending', mode:'solo', keeps:true, sub:'1 goal in progress', line:'The goal builder runs here — finished goals show up in Your Corner.', cta:'Continue' },
+  { id:'t-soon', label:'Heads up', ri:'··', title:'More tools on the way', body:'New tools land right here when they ship — nothing to unlock, nothing to set up.', status:'slot', mode:'meta', sub:'no routing, on purpose', line:'A new tool is just a new card — no “which teen is this?” logic decides who sees it.', cta:'Got it' },
+];
+const ITEMS = {
+  a: [
+    { id:'fy-a1', label:'For you', ri:'FY', title:'Waiting is the worst part', body:'Grounding helps when your brain won’t sit still. 3 minutes, no talking to anyone.', status:'new', mode:'solo', sub:'a nudge, never a gate', line:'Recommendation card — tapping deep-links to the tool itself.', cta:'Try grounding' },
+    ...TOOLS.map(t => t.id === 't-goals' ? { ...t, status:'new', sub:'10 min' } : t),
+    { id:'lk-swap', label:'Swap', ri:'SW', title:'Swaps unlock with your mentor', body:'You both answer the same prompt, then reveal at the same time. First one’s usually an icebreaker.', status:'locked', mode:'mentor', sub:'🔒 at match', line:'Locked preview — the same Hub for every teen, some items dormant until match.', cta:'Got it' },
+    { id:'lk-note', label:'Note', ri:'NO', title:'Notes from your mentor land here', body:'Little check-ins, hype before a big day, things they saw that made them think of you.', status:'locked', mode:'mentor', sub:'🔒 at match', line:'Locked preview — one Hub for everyone.', cta:'Got it' },
+  ],
+  b: [
+    { id:'swap-0', label:'Swap', ri:'SW', title:'Comfort movie you’ve seen 10+ times?', body:'You: “Spider-Verse, obviously.” Maya: “Mamma Mia and I will not be taking questions.”', status:'done', mode:'mentor', sub:'done · last week', line:'The finished swap — both answers, side by side.', cta:'Look back' },
+    { id:'dt-1', label:'Deep thought', ri:'DT', title:'A time you surprised yourself', body:'You wrote about speaking up in the group project.', status:'done', mode:'mentor', keeps:true, sub:'done · 5 days ago', line:'Your reflection — private by default, and it stays with you if you’re ever rematched.', cta:'Read it' },
+    { id:'mom-1', label:'Moment', ri:'MO', title:'One month of you two', body:'First month with Maya, saved as a shared memory.', status:'done', mode:'mentor', img:true, sub:'done · 3 days ago', line:'The moment viewer — photos and a caption.', cta:'Look back' },
+    { id:'swap-1', label:'Swap', ri:'SW', title:'What’s a small win from this week?', body:'Maya started this in your chat. You both answer, then reveal together.', status:'pending', mode:'mentor', origin:'chat', sub:'waiting in your chat', line:'Mirror of a chat card — answering and the reveal happen in the thread; the result lands here.', cta:'Open the chat →' },
+    { id:'mom-2', label:'Moment', ri:'MO', title:'Making the team 🎉', body:'Maya started this Moment in your chat — add your photo to finish it.', status:'pending', mode:'mentor', origin:'chat', img:true, sub:'waiting in your chat', line:'Mirror of a chat card — your photo gets added in the thread.', cta:'Open the chat →' },
+    { id:'hot-1', label:'Hot take', ri:'HT', title:'“Group chats are better than parties.”', body:'Maya’s take, dropped in your chat. Agree or nah — 30 seconds, no essay.', status:'new', mode:'mentor', origin:'chat', sub:'in your chat', line:'Mirror of a chat card — agree/nah happens in the thread.', cta:'Open the chat →' },
+    { id:'note-1', label:'Note', ri:'NO', title:'From Maya', body:'“Saw this before your tryouts — you’ve got this 🍀 text me after?”', status:'new', mode:'mentor', sub:'new', line:'The full note — replying is talking to your mentor, so that lives in chat.', cta:'Read note' },
+    { id:'fy-b1', label:'For you', ri:'FY', title:'Wound up before school?', body:'5-4-3-2-1 grounding takes 3 minutes and you can do it on the bus.', status:'new', mode:'solo', sub:'a nudge, never a gate', line:'Recommendation card — deep-links to the tool.', cta:'Try it' },
+    ...TOOLS,
+  ],
+  c: [
+    { id:'dt-1c', label:'Deep thought', ri:'DT', title:'A time you surprised yourself', body:'Written during your time with Maya. Deep thoughts stay with you — Jordan can’t see them unless you share.', status:'done', mode:'mentor', keeps:true, from:'Maya', sub:'kept · stays with you', line:'Yours, carried over. Share it with Jordan only if you choose.', cta:'Read it' },
+    { id:'ar-swap', label:'Swap', ri:'SW', title:'Comfort movie you’ve seen 10+ times?', body:'From your time with Maya. Read-only — swaps belong to the pair that made them.', status:'done', mode:'mentor', from:'Maya', sub:'w/ Maya · kept as a memory', line:'Read-only record from your previous mentorship.', cta:'Look back' },
+    { id:'ar-mom', label:'Moment', ri:'MO', title:'One month of you two', body:'Kept as a memory from your time with Maya.', status:'done', mode:'mentor', from:'Maya', img:true, sub:'w/ Maya', line:'Read-only memory.', cta:'Look back' },
+    { id:'note-j', label:'Note', ri:'NO', title:'From Jordan', body:'“Zero pressure to perform here — I’m mostly excited about the Spider-Verse thing.”', status:'new', mode:'mentor', sub:'new', line:'Jordan’s first note.', cta:'Read note' },
+    { id:'swap-j', label:'Swap', ri:'SW', title:'First swap: what’s your comfort food?', body:'Jordan started this in your chat. Classic icebreaker — answer there, reveal together.', status:'pending', mode:'mentor', origin:'chat', sub:'waiting in your chat', line:'Mirror of a chat card — the swap lives in your thread.', cta:'Open the chat →' },
+    { id:'fy-c1', label:'For you', ri:'FY', title:'New mentor, same you', body:'Your deep thoughts and goals moved with you. Only the “with Maya” stuff stayed behind.', status:'new', mode:'solo', sub:'a nudge, never a gate', line:'Recommendation card.', cta:'See what carried over' },
+    ...TOOLS,
+  ],
+};
+const MENTOR = { a: null, b: 'Maya', c: 'Jordan' };
+
+const HUB_NAME = {
+  a: { t: 'your space', sub: 'yours before you’re matched' },
+  b: { t: 'da boyzz', sub: 'Since October 2025' },
+  c: { t: 'you + jordan', sub: 'day one — some things came with you' },
+};
+const CANNED = [
+  'ok pizza earned 🍕', 'send a pic of the team jersey when you get it 👀',
+];
+function catOf(i) {
+  if (i.id === 't-breathe' || i.id === 't-ground') return 'Calm down';
+  if (i.id === 't-goals' || i.label === 'Deep thought') return 'Reflect';
+  if (['Swap', 'Hot take', 'Note'].includes(i.label) || i.id === 't-confess') return 'Connect';
+  if (i.label === 'Moment') return 'Celebrate';
+  return '…and more';
+}
+const CAT_NOTES = {
+  'Reflect': 'assumption: Goal builder filed here — could equally be “Grow”. Someone has to decide.',
+  'Connect': 'assumption: the confessions feed filed here — or is it “Calm down”? Same problem.',
+  '…and more': 'unfileable: future tools have no category until someone routes them.',
+};
+
+const CRISIS = {
+  title: 'Talk to someone now',
+  line: 'Call and text lines, a grounding exercise, and a human — one tap from every screen, in every state.',
+  cta: 'See the options',
+};
+const STATE_LABEL = { a: 'a · not matched', b: 'b · with Maya', c: 'c · rematched to Jordan' };
+
+/* ============ small shared pieces ============ */
+const SbIcons = () => html`
+  <svg width="68" height="13" viewBox="0 0 68 13" fill="none">
+    <rect x="0" y="8" width="3" height="4" rx="1" fill="#1a1a1a"/><rect x="5" y="6" width="3" height="6" rx="1" fill="#1a1a1a"/>
+    <rect x="10" y="4" width="3" height="8" rx="1" fill="#1a1a1a"/><rect x="15" y="2" width="3" height="10" rx="1" fill="#1a1a1a"/>
+    <path d="M26 5.5 C 29 2.8, 34 2.8, 37 5.5 L 35.4 7.2 C 33.3 5.3, 29.7 5.3, 27.6 7.2 Z M28.9 8.6 C 30.2 7.5, 32.8 7.5, 34.1 8.6 L 31.5 11.2 Z" fill="#1a1a1a"/>
+    <rect x="44" y="2.5" width="20" height="9" rx="2.6" stroke="#1a1a1a" stroke-opacity=".38" fill="none"/>
+    <rect x="46" y="4.5" width="13" height="5" rx="1.3" fill="#1a1a1a"/>
+    <path d="M65.5 5 v4 c1.2-.35 1.2-3.65 0-4z" fill="#1a1a1a" fill-opacity=".38"/>
+  </svg>`;
+
+const StatusBar = () => html`
+  <div class="statusbar"><span class="sb-time">9:41</span><div class="island"></div><${SbIcons}/></div>`;
+
+const Skel = ({ w, h, r = 12, style = {} }) =>
+  html`<div class="skel" style=${{ width: w, height: h, borderRadius: r, ...style }}></div>`;
+
+function useCountdown(seconds) {
+  const [t, setT] = useState(seconds);
+  useEffect(() => { const id = setInterval(() => setT(v => Math.max(0, v - 1)), 1000); return () => clearInterval(id); }, []);
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+  return `${h}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+}
+
+/* ============ bottom sheet (overlay tier) ============ */
+function Sheet({ item, onClose, onGoChat, onOpenItem }) {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const goChatRef = useRef(onGoChat);
+  goChatRef.current = onGoChat;
+  return html`
+    <${AnimatePresence}>
+      ${item && html`
+        <${motion.div} key="bd" class="backdrop"
+          initial=${{ opacity: 0 }} animate=${{ opacity: 1 }} exit=${{ opacity: 0 }}
+          transition=${{ duration: 0.2 }} onClick=${() => closeRef.current()} />
+        <${motion.div} key="sh" class="sheet"
+          initial=${{ y: '105%' }} animate=${{ y: 0 }} exit=${{ y: '110%', transition: { duration: 0.22 } }}
+          transition=${SPRING}
+          drag="y" dragConstraints=${{ top: 0, bottom: 0 }} dragElastic=${{ top: 0, bottom: 0.9 }}
+          dragSnapToOrigin dragMomentum=${false}
+          onDragEnd=${(e, info) => { if (info.offset.y > 130 || info.velocity.y > 500) closeRef.current(); }}>
+          <div class="grab"></div>
+          ${item.rows ? html`
+            <div class="t-t22" style=${{ margin: '2px 0 10px' }}>${item.title}</div>
+            <div style=${{ maxHeight: 470, overflowY: 'auto', overscrollBehavior: 'contain', margin: '0 -6px', padding: '0 6px' }}>
+              ${item.rows.map(r => html`
+                <${motion.div} key=${r.id} class="idxrow" whileTap=${TAP} transition=${SPRING_SM}
+                  onClick=${() => (item.onRow ? item.onRow(r) : onOpenItem && onOpenItem(r))}>
+                  <div class="ri">${r.ri}</div>
+                  <div style=${{ flex: 1, minWidth: 0 }}>
+                    <div class="t-s15" style=${{ fontWeight: 500, opacity: r.status === 'done' ? 0.55 : 1 }}>${r.title}</div>
+                    <div class="t-c13 c3">${r.label}${r.sub ? ' · ' + r.sub : ''}</div>
+                  </div>
+                  ${r.status === 'new' ? html`<span class="newdot"></span>` : null}
+                <//>`)}
+            </div>
+          ` : html`
+            <div style=${{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+              <${Skel} w=${84} h=${84} r=${16} />
+              <div style=${{ flex: 1, paddingTop: 2 }}>
+                <div class="t-t22" style=${{ marginBottom: 6 }}>${item.title}</div>
+                <div class="t-s15 c2">${item.line || ''}</div>
+              </div>
+            </div>
+            <${motion.button} class="btn primary" style=${{ width: '100%', marginTop: 22 }}
+              whileTap=${TAP} transition=${SPRING_SM}
+              onClick=${() => {
+                closeRef.current();
+                if (item.origin === 'chat' && goChatRef.current) goChatRef.current();
+              }}>
+              ${item.cta || 'Got it'}
+            <//>
+            ${(item.actions || []).map(a => html`
+              <${motion.button} key=${a.label} class="btn ghost" style=${{ width: '100%', marginTop: 8 }}
+                whileTap=${TAP} transition=${SPRING_SM}
+                onClick=${() => { closeRef.current(); a.fn(); }}>${a.label}<//>`)}
+          `}
+        <//>
+      `}
+    <//>`;
+}
+
+/* ============ gesture pager ============ */
+function PaneShell({ x, i, children }) {
+  const px = useTransform(x, v => (v + i * W) * -0.04);           // 4% parallax
+  const opacity = useTransform(x, v => 1 - 0.08 * Math.min(1, Math.abs(v + i * W) / W)); // dim to 92%
+  return html`
+    <div style=${{ width: W, height: '100%', flex: 'none', position: 'relative', overflow: 'hidden' }}>
+      <${motion.div} style=${{ x: px, opacity, position: 'absolute', inset: 0 }}>${children}<//>
+    </div>`;
+}
+
+function Pager({ panes, start = 0, navRef }) {
+  const x = useMotionValue(-start * W);
+  const [idx, setIdx] = useState(start);
+  const [dragging, setDragging] = useState(false);
+  const go = (i, vel = 0) => {
+    const n = Math.max(0, Math.min(panes.length - 1, i));
+    setIdx(n);
+    animate(x, -n * W, { ...SPRING, velocity: vel });
+  };
+  if (navRef) navRef.current = go;
+  return html`
+    <div style=${{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+      <${motion.div}
+        style=${{ x, display: 'flex', height: '100%', width: panes.length * W }}
+        drag="x" dragConstraints=${{ left: -(panes.length - 1) * W, right: 0 }}
+        dragElastic=${0.12} dragMomentum=${false}
+        onDragStart=${() => setDragging(true)}
+        onDragEnd=${(e, info) => {
+          setDragging(false);
+          const projected = x.get() + info.velocity.x * 0.25;
+          go(Math.round(-projected / W), info.velocity.x);
+        }}>
+        ${panes.map((p, i) => html`<${PaneShell} key=${i} x=${x} i=${i}>${p}<//>`)}
+      <//>
+      <div class="dots">
+        ${panes.map((_, i) => html`
+          <${motion.div} key=${i} class="dot6"
+            animate=${{ backgroundColor: i === idx ? '#1a1a1a' : 'rgba(0,0,0,.18)', scale: i === idx ? 1 : 0.85 }}
+            transition=${SPRING_SM} />`)}
+      </div>
+      <${AnimatePresence}>
+        ${!dragging && idx > 0 && html`
+          <${motion.button} key="l" class="chev" style=${{ left: 0, borderRadius: '0 16px 16px 0' }}
+            initial=${{ opacity: 0 }} animate=${{ opacity: 1 }} exit=${{ opacity: 0, transition: { duration: 0.15 } }}
+            whileTap=${{ scale: 0.94 }} onClick=${() => go(idx - 1)}>‹<//>`}
+        ${!dragging && idx < panes.length - 1 && html`
+          <${motion.button} key="r" class="chev" style=${{ right: 0, borderRadius: '16px 0 0 16px' }}
+            initial=${{ opacity: 0 }} animate=${{ opacity: 1 }} exit=${{ opacity: 0, transition: { duration: 0.15 } }}
+            whileTap=${{ scale: 0.94 }} onClick=${() => go(idx + 1)}>›<//>`}
+      <//>
+    </div>`;
+}
+
+/* ============ chat pane ============ */
+function bubbleRadius(kind, pos) {
+  const big = 20, tight = 6;
+  if (kind === 'them') {
+    if (pos === 'solo')   return `${big}px ${big}px ${big}px ${big}px`;
+    if (pos === 'first')  return `${big}px ${big}px ${big}px ${tight}px`;
+    if (pos === 'middle') return `${tight}px ${big}px ${big}px ${tight}px`;
+    return `${tight}px ${big}px ${big}px ${big}px`;
+  }
+  if (pos === 'solo')   return `${big}px ${big}px ${big}px ${big}px`;
+  if (pos === 'first')  return `${big}px ${big}px ${tight}px ${big}px`;
+  if (pos === 'middle') return `${big}px ${tight}px ${tight}px ${big}px`;
+  return `${big}px ${tight}px ${big}px ${big}px`;
+}
+
+function ChatPane({ s, openSheet, goHub, shelf }) {
+  const chat = CHAT[s];
+  const scrollRef = useRef(null);
+  const [pointerGone, setPointerGone] = useState(false);
+  const countdown = useCountdown(2 * 3600 + 13 * 60 + 8);
+  // concept 3: simulated incoming messages so the shelf can demonstrate getting out of the way
+  const [extra, setExtra] = useState([]);
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    if (!shelf || s === 'a') return;
+    const ts = [
+      setTimeout(() => setTyping(true), 3500),
+      setTimeout(() => { setTyping(false); setExtra([CANNED[0]]); }, 5200),
+      setTimeout(() => setTyping(true), 9000),
+      setTimeout(() => { setTyping(false); setExtra(CANNED.slice(0, 2)); }, 10600),
+    ];
+    return () => ts.forEach(clearTimeout);
+  }, [shelf, s]);
+  useEffect(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; }, [s, extra.length, typing]);
+
+  // annotate group position for bubble rhythm
+  const msgs = useMemo(() => chat.messages.map((m, i, arr) => {
+    if (m.kind !== 'them' && m.kind !== 'me') return m;
+    const prev = arr[i - 1], next = arr[i + 1];
+    const before = prev && prev.kind === m.kind, after = next && next.kind === m.kind;
+    const pos = before && after ? 'middle' : before ? 'last' : after ? 'first' : 'solo';
+    return { ...m, pos };
+  }), [s]);
+
+  const offline = chat.statusKind === 'countdown';
+  let k = 0; // entry stagger index
+
+  return html`
+    <div class="chat-body">
+      <div class="pane-head" style=${{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div class="avatar" style=${{ width: 36, height: 36, fontSize: 15 }}>${chat.initial}</div>
+        <div style=${{ flex: 1, minWidth: 0 }}>
+          <div class="t-b17" style=${{ fontWeight: 600 }}>${chat.name}</div>
+          <div class="t-c13" style=${{ color: chat.online ? 'var(--green)' : 'var(--ink-2)', fontWeight: chat.online ? 500 : 400 }}>
+            ${offline ? `matched in ≈ ${countdown}` : chat.status}
+          </div>
+        </div>
+        <${motion.button} class="talk-pill" whileTap=${TAP} transition=${SPRING_SM}
+          onClick=${() => openSheet(CRISIS)}>talk now<//>
+        <div class="hairline"></div>
+      </div>
+
+      <${motion.div} class="chat-scroll" animate=${{ opacity: offline ? 0.7 : 1 }} transition=${{ duration: 0.3 }}>
+        <div ref=${el => { scrollRef.current = el && el.parentElement; }}></div>
+        ${msgs.map((m, i) => {
+          if (m.kind === 'cap') return html`<${motion.div} key=${i} class="cap" ...${enter(k++)}>${m.text}<//>`;
+          if (m.kind === 'sys') return html`<${motion.div} key=${i} class="sysline" ...${enter(k++)}>${m.text}<//>`;
+          if (m.kind === 'card') return html`
+            <${motion.div} key=${i} ...${enter(k++)} style=${{ margin: '16px 0 0' }}>
+              <${motion.div} class="chatcard" whileTap=${TAP} transition=${SPRING_SM}
+                onClick=${() => openSheet(m)}>
+                <div class="t-l11" style=${{ color: 'var(--accent)', marginBottom: 8 }}>${m.label} · from ${chat.name}</div>
+                <div class="t-b17" style=${{ fontWeight: 600, marginBottom: 12 }}>${m.title}</div>
+                <${Skel} w="100%" h=${110} r=${12} />
+                <${motion.button} class="btn primary" style=${{ width: '100%', marginTop: 14 }}
+                  whileTap=${TAP} transition=${SPRING_SM}
+                  onClick=${e => { e.stopPropagation(); openSheet(m); }}>${m.cta}<//>
+              <//>
+            <//>`;
+          const gapTop = i > 0 && (msgs[i-1].kind === m.kind) ? 8 : 16;
+          const isLastOfThem = m.kind === 'them' && (m.pos === 'last' || m.pos === 'solo');
+          return html`
+            <${motion.div} key=${i} ...${enter(k++)}
+              style=${{ marginTop: gapTop, display: 'flex', justifyContent: m.kind === 'me' ? 'flex-end' : 'flex-start' }}>
+              <div class="mrow" style=${{ maxWidth: '100%' }}>
+                ${m.kind === 'them' ? (isLastOfThem
+                  ? html`<div class="avatar" style=${{ width: 24, height: 24, fontSize: 11 }}>${chat.initial}</div>`
+                  : html`<div style=${{ width: 24, flex: 'none' }}></div>`) : null}
+                <div class=${'bubble ' + m.kind} style=${{ borderRadius: bubbleRadius(m.kind, m.pos) }}>${m.text}</div>
+              </div>
+            <//>`;
+        })}
+        ${extra.map((t, i) => html`
+          <${motion.div} key=${'x' + i} initial=${{ opacity: 0, y: 12 }} animate=${{ opacity: 1, y: 0 }}
+            transition=${{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            style=${{ marginTop: 16, display: 'flex', justifyContent: 'flex-start' }}>
+            <div class="mrow">
+              <div class="avatar" style=${{ width: 24, height: 24, fontSize: 11 }}>${chat.initial}</div>
+              <div class="bubble them" style=${{ borderRadius: 20 }}>${t}</div>
+            </div>
+          <//>`)}
+        ${typing ? html`
+          <${motion.div} key="ty" initial=${{ opacity: 0, y: 8 }} animate=${{ opacity: 1, y: 0 }}
+            style=${{ marginTop: 16, display: 'flex' }}>
+            <div class="mrow">
+              <div class="avatar" style=${{ width: 24, height: 24, fontSize: 11 }}>${chat.initial}</div>
+              <div class="bubble them" style=${{ borderRadius: 20 }}>
+                <span class="tydots">
+                  ${[0, 1, 2].map(d => html`<${motion.span} key=${d}
+                    animate=${{ opacity: [0.35, 1, 0.35] }}
+                    transition=${{ repeat: Infinity, duration: 1, delay: d * 0.15 }} />`)}
+                </span>
+              </div>
+            </div>
+          <//>` : null}
+        <div style=${{ height: 8, flex: 'none' }}></div>
+      <//>
+
+      ${offline && html`
+        <${motion.div} class="offline-panel"
+          initial=${{ y: 150, opacity: 0 }} animate=${{ y: 0, opacity: 1 }} transition=${SPRING}>
+          <div style=${{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <div class="t-s15" style=${{ fontWeight: 600 }}>Finding your mentor</div>
+            <div class="t-s15" style=${{ fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--accent)' }}>≈ ${countdown}</div>
+          </div>
+          <div class="t-c13 c2" style=${{ marginTop: 2 }}>Usually a few hours. We text you the second it happens.</div>
+          <${AnimatePresence}>
+            ${!pointerGone && html`
+              <${motion.div} key="ptr" exit=${EXIT}
+                style=${{ marginTop: 12, background: 'var(--accent-tint)', borderRadius: 14, padding: 14, position: 'relative' }}>
+                <button aria-label="dismiss" onClick=${() => setPointerGone(true)}
+                  style=${{ position: 'absolute', top: 0, right: 0, width: 44, height: 44, border: 0, background: 'transparent', color: 'var(--ink-2)', fontSize: 15, cursor: 'pointer' }}>✕</button>
+                <div class="t-s15" style=${{ fontWeight: 600, color: 'var(--accent)', paddingRight: 36 }}>In the meantime — your space is open</div>
+                <div class="t-c13 c2" style=${{ marginTop: 3 }}>Breathing, grounding, goals, confessions from teens like you. None of it disappears after you’re matched.</div>
+                <${motion.button} class="btn primary" style=${{ width: '100%', marginTop: 12, minHeight: 44 }}
+                  whileTap=${TAP} transition=${SPRING_SM} onClick=${goHub}>Have a look →<//>
+              <//>`}
+          <//>
+        <//>`}
+
+      ${shelf ? html`
+        <${motion.div} class="shelf"
+          animate=${{ y: typing ? 24 : 0, opacity: typing ? 0.8 : 1 }} transition=${SPRING}
+          drag="y" dragConstraints=${{ top: 0, bottom: 0 }} dragElastic=${{ top: 0.4, bottom: 0 }}
+          dragSnapToOrigin dragMomentum=${false}
+          onDragEnd=${(e, info) => {
+            if (info.offset.y < -30 || info.velocity.y < -300)
+              openSheet({ rows: [...TOOLS], title: 'Your tools' });
+          }}>
+          ${TOOLS.filter(t => t.id !== 't-soon').map(t => html`
+            <${motion.button} key=${t.id} class="shelf-chip" whileTap=${TAP} transition=${SPRING_SM}
+              onClick=${() => openSheet(t)}>${({ 't-breathe': 'Breathe', 't-ground': 'Ground', 't-confess': 'Not alone', 't-goals': 'Goals' })[t.id]}<//>`)}
+          <${motion.button} class="shelf-chip more" whileTap=${TAP} transition=${SPRING_SM}
+            onClick=${() => openSheet({ rows: [...ITEMS[s]].filter(i => i.status !== 'locked').sort((a,b) => a.title.localeCompare(b.title)), title: 'Everything' })}>more ↑<//>
+        <//>` : null}
+      <div class="composer-wrap">
+        <div class="composer">
+          <${motion.button} class="round" style=${{ width: 44, height: 44, background: '#fff', border: '1px solid var(--hair)', color: 'var(--ink-2)', fontSize: 20 }}
+            whileTap=${TAP} transition=${SPRING_SM}>＋<//>
+          <div class="cinput">${chat.composer}</div>
+          <div class="round" style=${{ width: 36, height: 36, background: 'var(--accent)', color: '#fff', fontSize: 15, opacity: 0.35 }}>↑</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ============ your corner (kept as left pane in concept 1) ============ */
+function CornerPane() {
+  const squiggle = html`<svg width="150" height="14" viewBox="0 0 150 14" fill="none" style=${{ display: 'block', margin: '4px 0 6px' }}>
+    <path d="M3 9 C 25 3, 45 13, 70 7 S 120 3, 147 8" stroke="#141414" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+  const ring = html`<svg class="gmark" style=${{ left: -8, top: -8 }} width="34" height="38" viewBox="0 0 34 38" fill="none">
+    <path d="M17 4 C 28 3, 31 13, 29 21 C 27 31, 11 35, 5 26 C 0 18, 6 5, 16 4" stroke="#c9a13b" stroke-width="2" stroke-linecap="round"/></svg>`;
+  const under = html`<svg class="gmark" style=${{ left: 0, bottom: -10 }} width="150" height="10" viewBox="0 0 150 10" fill="none">
+    <path d="M2 6 C 30 2, 60 9, 100 5 S 138 4, 148 6" stroke="#c9a13b" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+  const marks = [ring, under, null];
+  return html`
+    <div class="corner">
+      <${motion.div} ...${enter(0)}>
+        <div class="t-d28" style=${{ color: '#141414' }}>your corner</div>
+        ${squiggle}
+      <//>
+      ${['Make varsity track', 'Ask for help before it’s a crisis', 'Keep Sundays for me'].map((g, i) => html`
+        <${motion.div} key=${g} class="goal" ...${enter(i + 1)}>${marks[i]}${g}<//>`)}
+      <${motion.div} class="corner-note" ...${enter(4)}>
+        <b>Read-only, on purpose.</b> No streaks, no checkboxes, no nudges — a quiet wall for the
+        things you said matter. Goals get here through the Goal builder, and they stay through a rematch.
+      <//>
+    </div>`;
+}
+
+/* ============ empty hub pane (foundation only) ============ */
+function EmptyHub({ s }) {
+  return html`
+    <div style=${{ position: 'absolute', inset: 0, background: 'var(--ground)' }}>
+      <div class="pane-head">
+        <div class="t-d28">your space</div>
+        <div class="hairline"></div>
+      </div>
+      <div class="hub-scroll">
+        <${motion.div} ...${enter(0)} class="t-c13 c2" style=${{ marginBottom: 24 }}>
+          The three list-Hubs are deleted. Six interaction-model ideas are in the chat — the three you
+          pick get built here, one at a time.
+        <//>
+        ${[0,1,2].map(i => html`
+          <${motion.div} key=${i} ...${enter(i + 1)}
+            style=${{ background: '#fff', borderRadius: 20, boxShadow: 'var(--sh-rest)', padding: 16, marginBottom: 12 }}>
+            <div style=${{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <${Skel} w=${44} h=${44} r=${12} />
+              <div style=${{ flex: 1 }}>
+                <${Skel} w="62%" h=${14} r=${7} style=${{ marginBottom: 8 }} />
+                <${Skel} w="38%" h=${11} r=${6} />
+              </div>
+            </div>
+          <//>`)}
+      </div>
+    </div>`;
+}
+
+/* ============ shell phone (foundation kept; Hub slot empty) ============ */
+function ShellPhone({ s }) {
+  const [sheet, setSheet] = useState(null);
+  const navRef = useRef(null);
+  const nav = i => navRef.current && navRef.current(i);
+  return html`
+    <div class="phone">
+      <${StatusBar} />
+      <${Pager} navRef=${navRef} start=${0} panes=${[
+        html`<${ChatPane} s=${s} openSheet=${setSheet} goHub=${() => nav(1)} />`,
+        html`<${EmptyHub} s=${s} />`,
+      ]} />
+      <${Sheet} item=${sheet} onClose=${() => setSheet(null)}
+        onGoChat=${() => nav(0)} onOpenItem=${it => setSheet(it)} />
+      <div class="homebar"></div>
+    </div>`;
+}
+
+/* ============ HOMEPLACE — iOS-Home mechanics: jiggle, dock, live widgets ============ */
+const NEW_POOL = [
+  { id:'t-journal', label:'Tool', ri:'TL', title:'Night journal', body:'Three lines before bed. No one reads it — not even Maya.', status:'new', mode:'solo', keeps:true, sub:'2 min', line:'The journal runs here.', cta:'Start' },
+  { id:'t-pep', label:'Tool', ri:'TL', title:'Pep talks', body:'Sixty-second boosts from mentors, for the moments before the moment.', status:'new', mode:'solo', keeps:true, sub:'1 min', line:'The pep-talk player runs here.', cta:'Play one' },
+  { id:'t-focus', label:'Tool', ri:'TL', title:'Focus timer', body:'One homework block. Phone face-down energy.', status:'new', mode:'solo', keeps:true, sub:'25 min', line:'The focus timer runs here.', cta:'Start' },
+];
+const SHORT_NAME = { 't-breathe':'Breathe', 't-ground':'Ground', 't-confess':'Not alone', 't-goals':'Goals', 't-journal':'Journal', 't-pep':'Pep', 't-focus':'Focus' };
+
+function useLongPress(fn, ms = 500) {
+  const t = useRef(null); const p = useRef(null);
+  const clear = () => { if (t.current) clearTimeout(t.current); t.current = null; };
+  return {
+    onPointerDown: e => { p.current = { x: e.clientX, y: e.clientY }; clear(); t.current = setTimeout(fn, ms); },
+    onPointerMove: e => { if (p.current && Math.abs(e.clientX - p.current.x) + Math.abs(e.clientY - p.current.y) > 10) clear(); },
+    onPointerUp: clear, onPointerCancel: clear, onPointerLeave: clear,
+  };
+}
+
+const DEPARTS = [
+  { id:'dp-swap', ri:'SW', label:'Swap', title:'Comfort movie you’ve seen 10+ times?', sub:'w/ Maya — swaps belong to the pair' },
+  { id:'dp-hot', ri:'HT', label:'Hot take', title:'“Group chats are better than parties.”', sub:'w/ Maya — leaves with the relationship' },
+];
+
+function Homeplace({ s, openSheet, closeSheet, devTick }) {
+  const mentor = MENTOR[s];
+  const countdown = useCountdown(2 * 3600 + 13 * 60 + 8);
+  const baseTools = TOOLS.filter(t => t.id !== 't-soon');
+  const [toolDefs, setToolDefs] = useState(baseTools);
+  const [order, setOrder] = useState(() => ['mentor', ...baseTools.map(t => t.id).filter(id => id !== 't-breathe'), 'keeps']);
+  const [dock, setDock] = useState(['t-breathe']);
+  const [hidden, setHidden] = useState([]);
+  const [kept, setKept] = useState(() =>
+    s === 'b' ? [{ ...ITEMS.b.find(i => i.id === 'dt-1'), sub: 'deep thought · yours' }]
+    : s === 'c' ? [
+        { ...ITEMS.c.find(i => i.id === 'dt-1c'), sub: 'deep thought · came with you' },
+        { ...ITEMS.c.find(i => i.id === 'ar-mom'), sub: 'moment · w/ Maya · you kept it, so it’s yours' },
+      ]
+    : []);
+  const [loose, setLoose] = useState(() => s === 'b' ? [{ ...ITEMS.b.find(i => i.id === 'mom-1') }] : []);
+  const [rec, setRec] = useState(false);
+  const [jiggle, setJiggle] = useState(false);
+  const [dragId, setDragId] = useState(null);
+  const [departed, setDeparted] = useState(s !== 'c');
+  const usedDev = useRef(devTick);
+  const itemRefs = useRef(new Map());
+  const keepsElRef = useRef(null);
+  const dockRef = useRef(null);
+  const lastOver = useRef(null);
+
+  useEffect(() => { const t = setTimeout(() => setRec(true), 2600); return () => clearTimeout(t); }, []);
+  useEffect(() => {
+    if (s === 'c') { const t = setTimeout(() => setDeparted(true), 1800); return () => clearTimeout(t); }
+  }, []);
+  useEffect(() => {
+    if (devTick > usedDev.current) {
+      const src = NEW_POOL[(devTick - 1) % NEW_POOL.length];
+      const id = src.id + '-' + devTick;
+      setToolDefs(d => [...d, { ...src, id }]);
+      setOrder(o => { const c = [...o]; c.splice(c.indexOf('keeps'), 0, id); return c; });
+      usedDev.current = devTick;
+    }
+  }, [devTick]);
+
+  const def = id => toolDefs.find(t => t.id === id);
+  const pin = id => setDock(d => d.length < 4 && !d.includes(id) ? [...d, id] : d);
+  const unpin = id => setDock(d => d.filter(x => x !== id));
+  const hide = id => setHidden(h => [...h, id]);
+  const restore = id => setHidden(h => h.filter(x => x !== id));
+
+  const toolSheet = t => openSheet({ ...t, actions: [
+    dock.includes(t.id)
+      ? { label: 'Remove from dock', fn: () => unpin(t.id) }
+      : { label: 'Pin to dock', fn: () => pin(t.id) },
+  ]});
+  const keepsSheet = () => openSheet({
+    rows: [
+      ...kept,
+      ...hidden.map(id => ({ ...def(id), id: 'h-' + id, _hid: id, sub: 'hidden · tap to bring back' })),
+    ],
+    title: 'Keeps' + (hidden.length ? ' & hidden' : ''),
+    onRow: r => { if (r._hid) { restore(r._hid); closeSheet(); } else { closeSheet(); setTimeout(() => openSheet(r), 60); } },
+  });
+
+  const keep = l => { setLoose(ls => ls.filter(x => x.id !== l.id)); setKept(k => [...k, { ...l, sub: 'moment · kept' }]); };
+  const letGo = l => setLoose(ls => ls.filter(x => x.id !== l.id));
+
+  const onDragW = id => e => {
+    const hit = [...itemRefs.current.entries()].find(([oid, el]) => {
+      if (oid === id || !el) return false;
+      const r = el.getBoundingClientRect();
+      return e.clientX > r.left && e.clientX < r.right && e.clientY > r.top && e.clientY < r.bottom;
+    });
+    if (hit && lastOver.current !== hit[0]) {
+      lastOver.current = hit[0];
+      setOrder(o => { const c = [...o]; const f = c.indexOf(id); const t2 = c.indexOf(hit[0]);
+        if (f < 0 || t2 < 0) return o; c.splice(f, 1); c.splice(t2, 0, id); return c; });
+    }
+  };
+  const onDragEndW = id => (e) => {
+    setDragId(null); lastOver.current = null;
+    const d = dockRef.current && dockRef.current.getBoundingClientRect();
+    if (def(id) && d && e.clientY > d.top && e.clientY < d.bottom && e.clientX > d.left && e.clientX < d.right) pin(id);
+  };
+
+  const waiting = ITEMS[s].filter(i => i.origin === 'chat' && (i.status === 'pending' || i.status === 'new'));
+  const lp = useLongPress(() => setJiggle(true));
+
+  const wobble = i => jiggle
+    ? { rotate: [-1, 1], transition: { rotate: { repeat: Infinity, repeatType: 'mirror', duration: 0.13 + (i % 3) * 0.02 } } }
+    : { rotate: 0 };
+
+  const wrapW = (id, i, { span = 1, cls = '', onTap, canHide = false, refCb, children }) => html`
+    <${motion.div} key=${id} layout transition=${SPRING}
+      initial=${{ scale: 0.6, opacity: 0 }} animate=${{ scale: 1, opacity: 1, ...wobble(i) }}
+      exit=${{ scale: 0.6, opacity: 0, transition: { duration: 0.18 } }}
+      class=${'wcard ' + cls}
+      style=${{ width: span === 2 ? 358 : 171, minHeight: span === 2 ? 192 : 104, zIndex: dragId === id ? 20 : 1 }}
+      ref=${el => { if (el) itemRefs.current.set(id, el); else itemRefs.current.delete(id); if (refCb) refCb(el); }}
+      drag=${jiggle} dragSnapToOrigin dragMomentum=${false}
+      onDragStart=${() => setDragId(id)} onDrag=${onDragW(id)} onDragEnd=${onDragEndW(id)}
+      whileDrag=${{ scale: 1.06 }} whileTap=${!jiggle ? { scale: 0.97 } : undefined}
+      onClick=${() => { if (!jiggle && onTap) onTap(); }}>
+      <${motion.div} class="wshadow" animate=${{ opacity: dragId === id ? 1 : 0 }} transition=${{ duration: 0.2 }} />
+      <${AnimatePresence}>
+        ${jiggle && canHide ? html`
+          <${motion.button} key="x" class="xbadge" initial=${{ scale: 0 }} animate=${{ scale: 1 }}
+            exit=${{ scale: 0 }} transition=${SPRING_SM}
+            onClick=${e => { e.stopPropagation(); hide(id); }} aria-label="hide">✕<//>` : null}
+      <//>
+      ${children}
+    <//>`;
+
+  const gridIds = order.filter(id =>
+    id === 'mentor' || id === 'keeps' || (def(id) && !dock.includes(id) && !hidden.includes(id)));
+
+  const widgets = [];
+  gridIds.forEach((id, i) => {
+    if (id === 'mentor') {
+      widgets.push(wrapW('mentor', i, { span: 2, onTap: null, children: html`
+        <div style=${{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span class="t-l11 c3">${mentor ? 'with ' + mentor : 'your mentor'}</span>
+          ${waiting.some(w => w.status === 'new' || w.status === 'pending') ? html`
+            <${motion.span} class="newdot" initial=${{ scale: 0 }} animate=${{ scale: [0, 1.5, 1] }} transition=${{ duration: 0.4, delay: 0.5 }} />` : null}
+        </div>
+        ${s === 'a' ? html`
+          <div class="t-t22" style=${{ margin: '8px 0 4px' }}>Matching you now</div>
+          <div class="t-s15 c2" style=${{ fontVariantNumeric: 'tabular-nums' }}>≈ ${countdown}</div>
+          <div class="mrowi" style=${{ marginTop: 8 }} onClick=${e => { e.stopPropagation(); openSheet(ITEMS.a.find(x => x.id === 'lk-swap')); }}>
+            <div class="ri" style=${{ width: 32, height: 32, borderRadius: 10, background: '#f0f0ee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)' }}>SW</div>
+            <div class="t-s15 c3">Swaps unlock here at match 🔒</div>
+          </div>`
+        : html`
+          <div class="t-t22" style=${{ margin: '8px 0 4px' }}>${waiting.length ? 'Waiting on you' : 'All caught up'}</div>
+          ${waiting.slice(0, 2).map(w => html`
+            <div key=${w.id} class="mrowi" onClick=${e => { e.stopPropagation(); openSheet(w); }}>
+              <div style=${{ width: 32, height: 32, borderRadius: 10, background: '#f0f0ee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', flex: 'none' }}>${w.ri}</div>
+              <div style=${{ flex: 1, minWidth: 0 }}>
+                <div class="t-s15" style=${{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>${w.title}</div>
+                <div class="t-c13 c3">${w.sub}</div>
+              </div>
+            </div>`)}
+          ${waiting.length > 2 ? html`<div class="t-c13 c3" style=${{ marginTop: 4 }}>+ ${waiting.length - 2} more in your chat</div>` : null}`}
+      `}));
+      if (rec) widgets.push(html`
+        <${motion.div} key="rec" layout transition=${SPRING}
+          initial=${{ scale: 0.6, opacity: 0 }} animate=${{ scale: 1, opacity: 1 }}
+          exit=${{ scale: 0.6, opacity: 0, transition: { duration: 0.18 } }}
+          class="wcard rec-tile" style=${{ width: 171, minHeight: 104 }}
+          whileTap=${{ scale: 0.97 }}
+          onClick=${() => { openSheet({ ...TOOLS.find(t => t.id === 't-ground'), line: 'Recommended right now — wound up before school? 3 minutes. A nudge, never a gate.' }); setRec(false); }}>
+          <button class="xbadge" style=${{ left: 'auto', right: -8 }} aria-label="not now"
+            onClick=${e => { e.stopPropagation(); setRec(false); }}>✕</button>
+          <div class="t-l11" style=${{ color: 'var(--accent)' }}>✦ for you</div>
+          <div class="t-s15" style=${{ fontWeight: 600, margin: '8px 0 4px' }}>Wound up?</div>
+          <div class="t-c13 c2">Try 5-4-3-2-1 — 3 min. Only ever one of these.</div>
+        <//>`);
+    } else if (id === 'keeps') {
+      widgets.push(wrapW('keeps', i, { onTap: keepsSheet, refCb: el => { keepsElRef.current = el; }, children: html`
+        <div class="t-l11 c3">keeps</div>
+        <div class="t-d28" style=${{ margin: '4px 0 0' }}>${kept.length}</div>
+        <div class="t-c13 c3">${kept.length ? 'yours, forever' : 'fills as you finish things'}</div>
+        ${s === 'c' ? html`
+          <${motion.span} class="greenchip" style=${{ marginTop: 8, display: 'inline-block' }}
+            initial=${{ scale: 0 }} animate=${{ scale: [0, 1.25, 1] }} transition=${{ duration: 0.45, delay: 2.2 }}>came with you ✓<//>` : null}
+      `}));
+    } else {
+      const t = def(id);
+      widgets.push(wrapW(id, i, { onTap: () => toolSheet(t), canHide: true, children: html`
+        <div style=${{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <span class="t-l11 c3">tool</span>
+          ${t.status === 'new' && usedDev.current > 0 && id.includes('-') && !baseTools.some(b => b.id === id) ? html`
+            <${motion.span} class="newdot" initial=${{ scale: 0 }} animate=${{ scale: [0, 1.5, 1] }} transition=${{ duration: 0.4, delay: 0.35 }} />` : null}
+        </div>
+        <div class="t-s15" style=${{ fontWeight: 600, margin: '8px 0 4px' }}>${t.title}</div>
+        <div class="t-c13 c3">${t.id === 't-goals' && s !== 'a' ? '1 in progress · resume' : (t.sub || '') + ' · last used —'}</div>
+      `}));
+    }
+  });
+
+  return html`
+    <div style=${{ position: 'absolute', inset: 0, background: 'var(--ground)' }}>
+      <div class="wgrid" ...${lp}>
+        <div class="wwrap">
+          <${AnimatePresence} initial=${false}>
+            ${widgets}
+            ${loose.map(l => html`
+              <${motion.div} key=${l.id} layout transition=${SPRING}
+                initial=${{ scale: 0.8, opacity: 0 }} animate=${{ scale: 1, opacity: 1 }}
+                exit=${{ opacity: 0, y: 8, transition: { duration: 0.18 } }}
+                class="wcard" style=${{ width: 358, zIndex: dragId === l.id ? 20 : 1 }}
+                drag dragSnapToOrigin dragMomentum=${false}
+                onDragStart=${() => setDragId(l.id)}
+                onDragEnd=${e => { setDragId(null);
+                  const k = keepsElRef.current && keepsElRef.current.getBoundingClientRect();
+                  if (k && e.clientX > k.left && e.clientX < k.right && e.clientY > k.top && e.clientY < k.bottom) keep(l);
+                }}
+                whileDrag=${{ scale: 1.04 }}>
+                <${motion.div} class="wshadow" animate=${{ opacity: dragId === l.id ? 1 : 0 }} transition=${{ duration: 0.2 }} />
+                <div class="t-l11 c3">just finished · ${l.label}</div>
+                <div class="t-s15" style=${{ fontWeight: 600, margin: '6px 0 12px' }}>${l.title}</div>
+                <div style=${{ display: 'flex', gap: 8 }}>
+                  <${motion.button} class="btn primary" style=${{ flex: 1, minHeight: 44 }} whileTap=${TAP}
+                    transition=${SPRING_SM} onClick=${() => keep(l)}>Keep it<//>
+                  <${motion.button} class="btn ghost" style=${{ flex: 1, minHeight: 44 }} whileTap=${TAP}
+                    transition=${SPRING_SM} onClick=${() => letGo(l)}>Let it go<//>
+                </div>
+                <div class="t-c13 c3" style=${{ marginTop: 8 }}>or drag it onto the Keeps box</div>
+              <//>`)}
+            ${!departed ? DEPARTS.map((d, i) => html`
+              <${motion.div} key=${d.id} layout class="wcard" style=${{ width: 358, opacity: 0.9 }}
+                custom=${i} exit=${{ x: -430, opacity: 0, transition: { duration: 0.32, delay: i * 0.1 } }}>
+                <div class="t-l11 c3">leaving · ${d.label}</div>
+                <div class="t-s15" style=${{ fontWeight: 500, margin: '6px 0 2px' }}>${d.title}</div>
+                <div class="t-c13 c3">${d.sub}</div>
+              <//>`) : null}
+          <//>
+        </div>
+      </div>
+      <div class="pane-head" style=${{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style=${{ flex: 1 }}>
+          <div class="t-b17" style=${{ fontWeight: 600 }}>homeplace</div>
+          <button class="t-c13" onClick=${() => setJiggle(j => !j)}
+            style=${{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', font: 'inherit', fontSize: 13, lineHeight: '18px', color: jiggle ? 'var(--ink-2)' : 'var(--accent)', position: 'relative' }}>
+            ${jiggle ? 'drag to arrange · ✕ hides · drop a tool on the dock to pin' : 'hold anywhere — or tap here — to arrange'}
+          </button>
+        </div>
+        <${AnimatePresence}>
+          ${jiggle ? html`
+            <${motion.button} key="done" class="donepill" initial=${{ opacity: 0, y: -8 }}
+              animate=${{ opacity: 1, y: 0 }} exit=${{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
+              transition=${SPRING_SM} onClick=${() => setJiggle(false)}>Done<//>` : null}
+        <//>
+        <div class="hairline"></div>
+      </div>
+      <div class="dock" ref=${dockRef}>
+        ${[0, 1, 2, 3].map(i => {
+          const id = dock[i];
+          if (!id) return html`<div key=${'e' + i} class="dockslot empty"></div>`;
+          const t = def(id);
+          return html`
+            <${motion.button} key=${id} class="dockslot" layout whileTap=${TAP} transition=${SPRING_SM}
+              animate=${jiggle ? { rotate: [-1.5, 1.5], transition: { rotate: { repeat: Infinity, repeatType: 'mirror', duration: 0.14 } } } : { rotate: 0 }}
+              onClick=${() => jiggle ? unpin(id) : toolSheet(t)}>${SHORT_NAME[id.replace(/-\d+$/, '')] || t.title}<//>`;
+        })}
+      </div>
+    </div>`;
+}
+
+function HomeplacePhone({ s, devTick }) {
+  const [sheet, setSheet] = useState(null);
+  const navRef = useRef(null);
+  const nav = i => navRef.current && navRef.current(i);
+  return html`
+    <div class="phone">
+      <${StatusBar} />
+      <${Pager} navRef=${navRef} start=${0} panes=${[
+        html`<${ChatPane} s=${s} openSheet=${setSheet} goHub=${() => nav(1)} />`,
+        html`<${Homeplace} s=${s} openSheet=${setSheet} closeSheet=${() => setSheet(null)} devTick=${devTick} />`,
+      ]} />
+      <${Sheet} item=${sheet} onClose=${() => setSheet(null)}
+        onGoChat=${() => nav(0)} onOpenItem=${it => setSheet(it)} />
+      <div class="homebar"></div>
+    </div>`;
+}
+
+function HomeplaceUnit() {
+  const [s, setS] = useState('b');
+  const [dev, setDev] = useState(0);
+  return html`
+    <section class="unit">
+      <div><h2>1 · Homeplace</h2><div class="sub">steals iOS Home (jiggle, dock, mixed widgets) + Instagram Saved (collect first)</div></div>
+      <div class="controls">
+        <span class="seg-label">state</span>
+        <div class="seg">
+          ${['a','b','c'].map(v => html`
+            <button key=${v} class=${v === s ? 'on' : ''} onClick=${() => { setS(v); setDev(0); }}>${v}</button>`)}
+        </div>
+        <span class="seg-label">${STATE_LABEL[s]}</span>
+        <button class="devbtn" onClick=${() => setDev(d => d + 1)}>+1 tool</button>
+      </div>
+      <${HomeplacePhone} key=${s} s=${s} devTick=${dev} />
+      <div class="notecard">
+        <strong>The bet:</strong> a home is spatial memory — things stay where you put them, so the 3am
+        path is muscle, not search. The mentor widget is the only live surface: what’s waiting renders
+        <em>inside your room</em>, never as a badge. Keeping is physical (drag the finished thing onto
+        the box, or one tap); hiding a tool is one ✕ in jiggle, guilt-free and reversible from the box.
+        A new tool is an append — watch “+1 tool” drop in with zero routing. Rematch is the concept’s
+        best scene: the room doesn’t move; Maya-bound cards slide off left, your keeps pulse “came with
+        you”. <strong>Where it breaks:</strong> default layout is a curation policy (flagged); widgets
+        cap how much can live here before page 2 becomes a junk drawer; and jiggle is invisible until
+        discovered — the header hint carries that weight.
+        <div class="flag"><b>⚠ which-flow watch</b>
+          The starting arrangement (what’s big, what’s docked) is per-teen curation in disguise — fixed
+          here: mentor 2×2, tools alphabetical, Breathe docked. And the ✦ slot’s content is a
+          recommendation policy; capped at one, dismissible, never gates.</div>
+      </div>
+    </section>`;
+}
+
+/* ============ TODAY & ALWAYS — Arc's self-clearing today + Journal's collect + Things' checkoff ============ */
+function TodayAlways({ s, openSheet, closeSheet, devTick, dayTick }) {
+  const mentor = MENTOR[s];
+  const countdown = useCountdown(2 * 3600 + 13 * 60 + 8);
+  const [tools, setTools] = useState(TOOLS.filter(t => t.id !== 't-soon'));
+  const [pins, setPins] = useState(() => s === 'a' ? [] : ['t-breathe']);
+  const [kept, setKept] = useState(() =>
+    s === 'b' ? [{ ...ITEMS.b.find(i => i.id === 'dt-1'), sub: 'deep thought · yours' }]
+    : s === 'c' ? [
+        { ...ITEMS.c.find(i => i.id === 'dt-1c'), sub: 'deep thought · came with you' },
+        { ...ITEMS.c.find(i => i.id === 'ar-mom'), sub: 'moment · you kept it, so it’s yours' },
+      ] : []);
+  const [stream, setStream] = useState(() =>
+    s === 'b' ? [
+      { id: 'w1', k: 'wait', it: ITEMS.b.find(i => i.id === 'swap-1') },
+      { id: 'w2', k: 'wait', it: ITEMS.b.find(i => i.id === 'mom-2') },
+      { id: 'rs', k: 'resume' },
+      { id: 'f1', k: 'fin', it: ITEMS.b.find(i => i.id === 'mom-1') },
+      { id: 'y1', k: 'rem', title: '“Group chats are better than parties.” — you weighed in', sub: 'from yesterday · clears tonight unless you keep it' },
+    ]
+    : s === 'a' ? [
+      { id: 'sa', k: 'sys', text: 'countdown' },
+      { id: 'd1', k: 'disc', it: TOOLS.find(t => t.id === 't-confess') },
+    ]
+    : [
+      { id: 'sc', k: 'sys', text: 'Matched with Jordan this morning. Deep thoughts, keeps and pins came with you.' },
+      { id: 'wj', k: 'wait', it: ITEMS.c.find(i => i.id === 'swap-j') },
+      { id: 'm1', k: 'remM', title: 'Comfort movie you’ve seen 10+ times? · swap', sub: 'w/ Maya — leaves with the relationship' },
+      { id: 'm2', k: 'remM', title: 'From Maya · note', sub: 'w/ Maya — leaves' },
+    ]);
+  const [dragId, setDragId] = useState(null);
+  const [burst, setBurst] = useState(0);
+  const usedDev = useRef(devTick);
+  const usedDay = useRef(dayTick);
+  const recDone = useRef(false);
+  const shelfRef = useRef(null);
+  const newTool = useRef(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (recDone.current) return; recDone.current = true;
+      setStream(st => {
+        const i = st.filter(e => e.k === 'wait').length;
+        const c = [...st]; c.splice(Math.min(i, c.length), 0, { id: 'rec', k: 'rec' }); return c;
+      });
+    }, 2500);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    if (s === 'c') { const t = setTimeout(() => setStream(st => st.filter(e => e.k !== 'remM')), 2000); return () => clearTimeout(t); }
+  }, []);
+  useEffect(() => {
+    if (devTick > usedDev.current) {
+      const src = NEW_POOL[(devTick - 1) % NEW_POOL.length];
+      const id = src.id + '-' + devTick;
+      newTool.current = id;
+      setTools(d => [...d, { ...src, id }]);
+      usedDev.current = devTick;
+    }
+  }, [devTick]);
+  useEffect(() => {
+    if (dayTick > usedDay.current) {
+      usedDay.current = dayTick;
+      setStream(st => [
+        ...st.filter(e => e.k === 'wait' || e.k === 'resume'),
+        { id: 'clr' + dayTick, k: 'sys', text: 'Cleared overnight. Kept things live in Always; waiting things wait. Nothing nags.' },
+      ]);
+    }
+  }, [dayTick]);
+
+  const drop = (e) => shelfRef.current && (() => { const r = shelfRef.current.getBoundingClientRect();
+    return e.clientY < r.bottom && e.clientY > r.top - 40; })();
+  const keep = (entry, label) => {
+    setStream(st => st.filter(x => x.id !== entry.id));
+    setKept(k => [...k, { id: 'k' + entry.id, ri: entry.it ? entry.it.ri : 'HT', title: entry.it ? entry.it.title : entry.title, label: label || 'kept', sub: 'kept today', line: 'Kept — it lives in the box now, through rematches too.', cta: 'Open' }]);
+    setBurst(b => b + 1);
+  };
+  const letGo = entry => setStream(st => st.filter(x => x.id !== entry.id));
+  const pinTool = id => setPins(p => p.includes(id) || p.length >= 4 ? p : [...p, id]);
+  const unpin = id => setPins(p => p.filter(x => x !== id));
+  const toolSheet = t => openSheet({ ...t, actions: [
+    pins.includes(t.id) ? { label: 'Unpin from Always', fn: () => unpin(t.id) }
+                        : { label: 'Pin to Always', fn: () => pinTool(t.id) } ]});
+  const keepsSheet = () => openSheet({ rows: kept, title: 'Keeps' });
+
+  const card = (entry, cls, children, extra = {}) => html`
+    <${motion.div} key=${entry.id} layout transition=${SPRING}
+      initial=${{ opacity: 0, y: 12 }} animate=${{ opacity: 1, y: 0 }}
+      exit=${entry.k === 'remM' ? { x: -430, opacity: 0, transition: { duration: 0.32 } } : EXIT}
+      class=${'wcard ' + cls} style=${{ width: '100%', marginBottom: 16, zIndex: dragId === entry.id ? 20 : 1 }}
+      ...${extra}>
+      ${children}
+    <//>`;
+
+  return html`
+    <div style=${{ position: 'absolute', inset: 0, background: 'var(--ground)' }}>
+      <div class="stream">
+        <${AnimatePresence} initial=${false}>
+          ${stream.map(entry => {
+            if (entry.k === 'sys') return html`
+              <${motion.div} key=${entry.id} layout class="sysline" style=${{ margin: '0 0 16px' }}
+                initial=${{ opacity: 0, y: 12 }} animate=${{ opacity: 1, y: 0 }} exit=${EXIT}>
+                ${entry.text === 'countdown' ? html`Matching you now — ≈ ${countdown}. Today already works.` : entry.text}
+              <//>`;
+            if (entry.k === 'wait') return card(entry, '', html`
+              <div style=${{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span class="t-l11 c3">waiting · with ${mentor}</span><span class="newdot"></span>
+              </div>
+              <div class="t-b17" style=${{ fontWeight: 600, margin: '8px 0 4px' }}>${entry.it.title}</div>
+              <div class="t-c13 c3">${entry.it.sub} · lives in the thread</div>`,
+              { onClick: () => openSheet(entry.it), whileTap: { scale: 0.97 } });
+            if (entry.k === 'resume') return card(entry, '', html`
+              <div class="t-l11 c3">half-done</div>
+              <div class="t-s15" style=${{ fontWeight: 600, margin: '8px 0 8px' }}>Goal builder — step 2 of 4</div>
+              <div class="progress"><div></div></div>
+              <div class="t-c13 c3" style=${{ marginTop: 8 }}>picks up exactly where you left it</div>`,
+              { onClick: () => openSheet(TOOLS.find(t => t.id === 't-goals')), whileTap: { scale: 0.97 } });
+            if (entry.k === 'rec') return card(entry, 'rec-tile', html`
+              <button class="xbadge" style=${{ left: 'auto', right: -8 }} aria-label="not now"
+                onClick=${e => { e.stopPropagation(); letGo(entry); }}>✕</button>
+              <div class="t-l11" style=${{ color: 'var(--accent)' }}>✦ for you · only ever one</div>
+              <div class="t-s15" style=${{ fontWeight: 600, margin: '8px 0 4px' }}>Wound up before school?</div>
+              <div class="t-c13 c2">5-4-3-2-1 grounding · 3 min · gone tomorrow either way</div>`,
+              { onClick: () => { openSheet(TOOLS.find(t => t.id === 't-ground')); letGo(entry); }, whileTap: { scale: 0.97 } });
+            if (entry.k === 'fin' || entry.k === 'rem') return card(entry, entry.k === 'rem' ? 'remnant' : '', html`
+              <div class="t-l11 c3">${entry.k === 'fin' ? 'finished today · ' + (entry.it ? entry.it.label : '') : 'yesterday'}</div>
+              <div class="t-s15" style=${{ fontWeight: 600, margin: '6px 0 12px' }}>${entry.it ? entry.it.title : entry.title}</div>
+              <div style=${{ display: 'flex', gap: 8 }}>
+                <${motion.button} class="btn primary" style=${{ flex: 1, minHeight: 44 }} whileTap=${TAP}
+                  transition=${SPRING_SM} onClick=${e => { e.stopPropagation(); keep(entry); }}>Keep it<//>
+                <${motion.button} class="btn ghost" style=${{ flex: 1, minHeight: 44 }} whileTap=${TAP}
+                  transition=${SPRING_SM} onClick=${e => { e.stopPropagation(); letGo(entry); }}>Let it go<//>
+              </div>
+              <div class="t-c13 c3" style=${{ marginTop: 8 }}>or flick it up — kept things fly to Always</div>`,
+              { drag: 'y', dragSnapToOrigin: true, dragMomentum: false,
+                onDragStart: () => setDragId(entry.id),
+                onDragEnd: (e, info) => { setDragId(null);
+                  if (info.offset.y < -70 || info.velocity.y < -400 || drop(e)) keep(entry); },
+                whileDrag: { scale: 1.04 } });
+            if (entry.k === 'remM') return card(entry, 'remnant', html`
+              <div class="t-l11 c3">leaving</div>
+              <div class="t-s15" style=${{ fontWeight: 500, margin: '6px 0 2px' }}>${entry.title}</div>
+              <div class="t-c13 c3">${entry.sub}</div>`);
+            if (entry.k === 'disc') return card(entry, 'rec-tile', html`
+              <div class="t-l11" style=${{ color: 'var(--accent)' }}>discover</div>
+              <div class="t-s15" style=${{ fontWeight: 600, margin: '8px 0 4px' }}>${entry.it.title}</div>
+              <div class="t-c13 c2">${entry.it.body}</div>`,
+              { onClick: () => openSheet(entry.it), whileTap: { scale: 0.97 } });
+            return null;
+          })}
+          ${stream.filter(e => e.k !== 'sys').length === 0 ? html`
+            <${motion.div} key="quiet" class="sysline" initial=${{ opacity: 0 }} animate=${{ opacity: 1 }} style=${{ marginTop: 24 }}>
+              Nothing needs you. That’s allowed. Tools live below; keeps live above.
+            <//>` : null}
+        <//>
+      </div>
+
+      <div class="always" ref=${shelfRef}>
+        ${pins.map(id => { const t = tools.find(x => x.id === id); return html`
+          <${motion.button} key=${id} class="atile" layout transition=${SPRING_SM} whileTap=${TAP}
+            initial=${{ scale: 0.6, opacity: 0 }} animate=${{ scale: 1, opacity: 1 }}
+            onClick=${() => toolSheet(t)}>${SHORT_NAME[id.replace(/-\d+$/, '')] || t.title}
+            ${s === 'c' ? html`<span class="t-l11" style=${{ color: 'var(--green)', textTransform: 'none', letterSpacing: 0 }}>came along</span>` : null}
+          <//>`; })}
+        <${motion.button} key=${'keeps' + burst} class="atile" whileTap=${TAP}
+          animate=${{ scale: burst ? [1, 1.2, 1] : 1 }} transition=${{ duration: 0.4 }}
+          onClick=${keepsSheet}>
+          <span class="cnt">${kept.length}</span>keeps
+        <//>
+        ${pins.length < 2 ? html`<div class="atile empty">flick ↑<br/>to keep<br/>· pin tools</div>` : null}
+      </div>
+
+      <div class="pane-head" style=${{ height: 98, display: 'flex', alignItems: 'flex-end', paddingBottom: 8 }}>
+        <div style=${{ flex: 1 }}>
+          <div class="t-b17" style=${{ fontWeight: 600 }}>today</div>
+          <div class="t-c13 c3">clears itself overnight — keeps don’t</div>
+        </div>
+        <div class="hairline"></div>
+      </div>
+
+      <div class="strip">
+        <span class="t-l11 c3" style=${{ flex: 'none' }}>anytime</span>
+        ${tools.map(t => html`
+          <${motion.div} key=${t.id} style=${{ flex: 'none', position: 'relative' }}
+            drag="y" dragSnapToOrigin dragMomentum=${false} dragElastic=${{ top: 0.9, bottom: 0 }}
+            onDragEnd=${(e, info) => { if (info.offset.y < -160 || drop(e)) pinTool(t.id); }}>
+            <${motion.button} class="shelf-chip" whileTap=${TAP} transition=${SPRING_SM}
+              onClick=${() => toolSheet(t)}>
+              ${pins.includes(t.id) ? '★ ' : ''}${SHORT_NAME[t.id.replace(/-\d+$/, '')] || t.title}
+            <//>
+            ${newTool.current === t.id ? html`
+              <${motion.span} class="newdot" style=${{ position: 'absolute', top: -2, right: -2 }}
+                initial=${{ scale: 0 }} animate=${{ scale: [0, 1.5, 1] }} transition=${{ duration: 0.4, delay: 0.3 }} />` : null}
+          <//>`)}
+      </div>
+    </div>`;
+}
+
+/* ============ THE SPINE — Journal's stream + inline suggestions; pinch to see the whole story ============ */
+function Spine({ s, openSheet, closeSheet, devTick }) {
+  const mentor = MENTOR[s];
+  const countdown = useCountdown(2 * 3600 + 13 * 60 + 8);
+  const [zoom, setZoom] = useState('days');
+  const [stickers, setStickers] = useState(() =>
+    s === 'b' ? [{ id: 'dt-1', title: 'surprised yourself' }]
+    : s === 'c' ? [{ id: 'dt-1c', title: 'surprised yourself', carried: true }] : []);
+  const [tucked, setTucked] = useState([]);
+  const [tools, setTools] = useState(TOOLS.filter(t => t.id !== 't-soon'));
+  const [rec, setRec] = useState(false);
+  const usedDev = useRef(devTick);
+  const newTool = useRef(null);
+  const lpT = useRef(null);
+  useEffect(() => { const t = setTimeout(() => setRec(true), 2500); return () => clearTimeout(t); }, []);
+  useEffect(() => {
+    if (devTick > usedDev.current) {
+      const src = NEW_POOL[(devTick - 1) % NEW_POOL.length];
+      const id = src.id + '-' + devTick;
+      newTool.current = id;
+      setTools(d => [...d, { ...src, id }]);
+      usedDev.current = devTick;
+    }
+  }, [devTick]);
+
+  const addSticker = it => setStickers(st => st.some(x => x.id === it.id) ? st
+    : [...st, { id: it.id, title: it.title.slice(0, 22) }]);
+  const removeSticker = id => setStickers(st => st.filter(x => x.id !== id));
+  const tuck = id => setTucked(t => [...t, id]);
+  const lpFired = useRef(false);
+  const press = it => ({
+    onPointerDown: () => { lpT.current = setTimeout(() => { lpFired.current = true; addSticker(it); }, 450); },
+    onPointerMove: () => clearTimeout(lpT.current),
+    onPointerUp: () => clearTimeout(lpT.current),
+    onPointerLeave: () => clearTimeout(lpT.current),
+  });
+  const entrySheet = it => openSheet({ ...it, actions: [
+    stickers.some(x => x.id === it.id)
+      ? { label: 'Unpin from cover', fn: () => removeSticker(it.id) }
+      : { label: 'Pin to cover', fn: () => addSticker(it) },
+    { label: 'Tuck away', fn: () => tuck(it.id) },
+  ]});
+  const toolSheet = t => openSheet(t);
+  const mayaRows = () => openSheet({ rows: [
+    ITEMS.b.find(i => i.id === 'swap-0'), ITEMS.b.find(i => i.id === 'mom-1'),
+    { id: 'x1', ri: 'HT', title: '“Group chats are better than parties.”', label: 'Hot take', sub: 'w/ Maya' },
+  ], title: 'The Maya chapter · read-only' });
+
+  const entry = (it, { outline = false, carried = false, i = 0 } = {}) => tucked.includes(it.id) ? null : html`
+    <${motion.div} key=${it.id} layout transition=${SPRING}
+      initial=${carried ? { opacity: 0, y: 64 } : { opacity: 0, y: 12 }}
+      animate=${{ opacity: 1, y: 0 }}
+      exit=${{ x: -80, opacity: 0, transition: { duration: 0.18 } }}
+      class=${'tl-entry' + (outline ? ' outline' : '')}
+      drag="x" dragConstraints=${{ left: 0, right: 0 }} dragElastic=${{ left: 0.5, right: 0 }}
+      dragSnapToOrigin dragMomentum=${false}
+      onDragEnd=${(e, info) => { if (info.offset.x < -90) tuck(it.id); }}
+      whileTap=${{ scale: 0.98 }}
+      onClick=${() => { if (lpFired.current) { lpFired.current = false; return; } entrySheet(it); }}
+      ...${press(it)}>
+      <div class="tl-node"></div>
+      <div style=${{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span class="t-l11 c3">${it.label}${outline ? ' · open' : ''}</span>
+        ${outline ? html`<span class="newdot"></span>` : null}
+        ${carried ? html`
+          <${motion.span} class="greenchip" initial=${{ scale: 0 }} animate=${{ scale: [0, 1.25, 1] }}
+            transition=${{ duration: 0.45, delay: 1.2 + i * 0.15 }}>came with you ✓<//>` : null}
+      </div>
+      <div class="t-s15" style=${{ fontWeight: 600, marginTop: 6 }}>${it.title}</div>
+      ${it.sub ? html`<div class="t-c13 c3" style=${{ marginTop: 2 }}>${it.sub}</div>` : null}
+    <//>`;
+
+  const recEntry = rec ? html`
+    <${motion.div} key="rec" layout class="tl-entry rec-tile" initial=${{ opacity: 0, y: 12 }}
+      animate=${{ opacity: 1, y: 0 }} exit=${EXIT} whileTap=${{ scale: 0.98 }}
+      onClick=${() => { openSheet(TOOLS.find(t => t.id === 't-ground')); setRec(false); }}>
+      <div class="tl-node" style=${{ background: 'var(--accent)' }}></div>
+      <button class="xbadge" style=${{ left: 'auto', right: -8 }} aria-label="not now"
+        onClick=${e => { e.stopPropagation(); setRec(false); }}>✕</button>
+      <div class="t-l11" style=${{ color: 'var(--accent)' }}>✦ suggested, inline · only one</div>
+      <div class="t-s15" style=${{ fontWeight: 600, marginTop: 6 }}>Wound up? 3 minutes of 5-4-3-2-1</div>
+    <//>` : null;
+
+  const seam = label => html`
+    <div class="seam" key=${'seam' + label}><div class="ln"></div>
+      <span class="t-l11 c3">${label}</span><div class="ln"></div></div>`;
+
+  const chapter = (title, sub, onClick) => html`
+    <${motion.div} key=${title} layout class="tl-entry chapterband" whileTap=${{ scale: 0.98 }} onClick=${onClick}>
+      <div class="t-l11 c3">chapter</div>
+      <div class="t-s15" style=${{ fontWeight: 600, marginTop: 6 }}>${title}</div>
+      <div class="t-c13 c3" style=${{ marginTop: 2 }}>${sub}</div>
+    <//>`;
+
+  const days = s === 'b' ? html`
+    <div key="cap-today" class="t-l11 c3 daycap">today</div>
+    ${entry({ ...ITEMS.b.find(i => i.id === 'swap-1') }, { outline: true })}
+    ${entry({ ...ITEMS.b.find(i => i.id === 'mom-2') }, { outline: true })}
+    ${recEntry}
+    <div key="cap-tue" class="t-l11 c3 daycap">tuesday</div>
+    ${entry(ITEMS.b.find(i => i.id === 'mom-1'))}
+    <div key="cap-mon" class="t-l11 c3 daycap">monday</div>
+    ${entry(ITEMS.b.find(i => i.id === 'dt-1'))}
+    <div key="cap-lw" class="t-l11 c3 daycap">last week</div>
+    ${entry(ITEMS.b.find(i => i.id === 'swap-0'))}`
+  : s === 'a' ? html`
+    <div key="cap-d1" class="t-l11 c3 daycap">day one</div>
+    ${entry({ id: 'cd', label: 'your mentor', title: 'Matching you now — ≈ ' + countdown, sub: 'the story starts when you two do', line: 'Nothing to do here — the countdown just lives on the page.', cta: 'Got it' }, { outline: true })}
+    ${recEntry}
+    <${motion.div} key="hint" class="sysline" initial=${{ opacity: 0 }} animate=${{ opacity: 1 }}>
+      This page fills up as you do things — with your mentor, or on your own. Tools live below.
+    <//>`
+  : html`
+    <div key="cap-cj" class="t-l11 c3 daycap">today · day one with Jordan</div>
+    ${entry({ ...ITEMS.c.find(i => i.id === 'swap-j') }, { outline: true })}
+    ${entry({ ...ITEMS.c.find(i => i.id === 'dt-1c'), sub: 'crossed the seam with you' }, { carried: true, i: 0 })}
+    ${entry({ ...ITEMS.c.find(i => i.id === 'ar-mom'), sub: 'kept, so it’s yours' }, { carried: true, i: 1 })}
+    ${recEntry}
+    ${seam('rematched · sep 18')}
+    ${chapter('You + Maya', 'Oct 2025 → Sep 2026 · 34 things · read-only, still yours to reread', mayaRows)}`;
+
+  const weeks = html`
+    <div key="cap-w1" class="t-l11 c3 daycap">${s === 'c' ? 'with jordan' : 'this week'}</div>
+    ${chapter(s === 'c' ? 'Day one · 2 open' : 'This week · 2 done, 2 open', 'tap to zoom back in', () => setZoom('days'))}
+    ${s !== 'a' ? html`<div key="cap-w2" class="t-l11 c3 daycap">before</div>
+      ${chapter('Last week · 2 things', 'a swap and a hot take', () => setZoom('days'))}` : null}
+    ${s === 'c' ? html`${seam('rematched')}${chapter('You + Maya', '34 things · read-only', mayaRows)}` : null}`;
+
+  const story = html`
+    <div style=${{ paddingTop: 24 }}>
+      ${s === 'c' ? html`
+        ${chapter('You + Jordan', 'day one — already yours', () => setZoom('days'))}
+        ${seam('rematched · sep 18')}
+        ${chapter('You + Maya', 'Oct 2025 → Sep 2026 · 34 things', mayaRows)}`
+      : s === 'b' ? chapter('You + Maya', 'since October 2025 · 34 things and counting', () => setZoom('days'))
+      : chapter('You', 'day one — the first chapter starts at match', () => setZoom('days'))}
+      <div class="sysline">the whole story, one screen — chapters survive rematches</div>
+    </div>`;
+
+  return html`
+    <div style=${{ position: 'absolute', inset: 0, background: 'var(--ground)' }}
+      onWheel=${e => { if (e.ctrlKey) { e.preventDefault();
+        const order = ['days', 'weeks', 'story']; const i = order.indexOf(zoom);
+        setZoom(order[Math.max(0, Math.min(2, i + (e.deltaY > 0 ? 1 : -1)))]); } }}>
+      <div class="tl">
+        <div class="tl-inner">
+          <${AnimatePresence} mode="wait" initial=${false}>
+            <${motion.div} key=${zoom} initial=${{ opacity: 0, scale: 1.02 }} animate=${{ opacity: 1, scale: 1 }}
+              exit=${{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
+              transition=${{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+              <${AnimatePresence} initial=${false}>
+                ${zoom === 'days' ? days : zoom === 'weeks' ? weeks : story}
+              <//>
+            <//>
+          <//>
+        </div>
+      </div>
+      <div class="cover">
+        <span class="t-l11 c3" style=${{ flex: 'none' }}>cover</span>
+        <${AnimatePresence} initial=${false}>
+          ${stickers.map(st => html`
+            <${motion.button} key=${st.id} class="sticker" layout transition=${SPRING_SM}
+              initial=${{ scale: 0.5, opacity: 0 }} animate=${{ scale: 1, opacity: 1 }}
+              exit=${{ scale: 0.5, opacity: 0, transition: { duration: 0.15 } }}
+              whileTap=${TAP} onClick=${() => removeSticker(st.id)}>
+              ★ ${st.title}${st.carried ? ' ·✓' : ''}
+            <//>`)}
+        <//>
+        ${!stickers.length ? html`<span class="t-c13 c3">long-press an entry to pin it here</span>` : null}
+      </div>
+      <div class="pane-head" style=${{ height: 98, display: 'flex', alignItems: 'flex-end', paddingBottom: 8, gap: 8 }}>
+        <div style=${{ flex: 1 }}>
+          <div class="t-b17" style=${{ fontWeight: 600 }}>the spine</div>
+          <div class="t-c13 c3" style=${{ whiteSpace: 'nowrap' }}>pinch / toggle to zoom</div>
+        </div>
+        <div class="mseg">
+          ${['days', 'weeks', 'story'].map(z => html`
+            <button key=${z} class=${zoom === z ? 'on' : ''} onClick=${() => setZoom(z)}>
+              ${zoom === z ? html`<${motion.div} class="mseg-bg" layoutId=${'zseg-' + s} transition=${SPRING_SM} />` : null}
+              <span>${z}</span>
+            </button>`)}
+        </div>
+        <div class="hairline"></div>
+      </div>
+      <div class="strip">
+        <span class="t-l11 c3" style=${{ flex: 'none' }}>tools</span>
+        ${tools.map(t => html`
+          <div key=${t.id} style=${{ flex: 'none', position: 'relative' }}>
+            <${motion.button} class="shelf-chip" whileTap=${TAP} transition=${SPRING_SM}
+              onClick=${() => toolSheet(t)}>${SHORT_NAME[t.id.replace(/-\d+$/, '')] || t.title}<//>
+            ${newTool.current === t.id ? html`
+              <${motion.span} class="newdot" style=${{ position: 'absolute', top: -2, right: -2 }}
+                initial=${{ scale: 0 }} animate=${{ scale: [0, 1.5, 1] }} transition=${{ duration: 0.4, delay: 0.3 }} />` : null}
+          </div>`)}
+      </div>
+    </div>`;
+}
+
+/* ============ phones + units ============ */
+function makeHubPhone(HubPane) {
+  return function HubPhone({ s, devTick, dayTick }) {
+    const [sheet, setSheet] = useState(null);
+    const navRef = useRef(null);
+    const nav = i => navRef.current && navRef.current(i);
+    return html`
+      <div class="phone">
+        <${StatusBar} />
+        <${Pager} navRef=${navRef} start=${0} panes=${[
+          html`<${ChatPane} s=${s} openSheet=${setSheet} goHub=${() => nav(1)} />`,
+          html`<${HubPane} s=${s} openSheet=${setSheet} closeSheet=${() => setSheet(null)} devTick=${devTick} dayTick=${dayTick} />`,
+        ]} />
+        <${Sheet} item=${sheet} onClose=${() => setSheet(null)}
+          onGoChat=${() => nav(0)} onOpenItem=${it => setSheet(it)} />
+        <div class="homebar"></div>
+      </div>`;
+  };
+}
+const TodayAlwaysPhone = makeHubPhone(TodayAlways);
+const SpinePhone = makeHubPhone(Spine);
+
+function GenUnit({ title, sub, Phone, note, day }) {
+  const [s, setS] = useState('b');
+  const [dev, setDev] = useState(0);
+  const [dayT, setDayT] = useState(0);
+  return html`
+    <section class="unit">
+      <div><h2>${title}</h2><div class="sub">${sub}</div></div>
+      <div class="controls">
+        <span class="seg-label">state</span>
+        <div class="seg">
+          ${['a','b','c'].map(v => html`
+            <button key=${v} class=${v === s ? 'on' : ''} onClick=${() => { setS(v); setDev(0); setDayT(0); }}>${v}</button>`)}
+        </div>
+        <span class="seg-label">${STATE_LABEL[s]}</span>
+        <button class="devbtn" onClick=${() => setDev(d => d + 1)}>+1 tool</button>
+        ${day ? html`<button class="devbtn" onClick=${() => setDayT(d => d + 1)}>☾ end day</button>` : null}
+      </div>
+      <${Phone} key=${s} s=${s} devTick=${dev} dayTick=${dayT} />
+      <div class="notecard">${note}</div>
+    </section>`;
+}
+
+const NOTE_TA = html`
+  <strong>The bet:</strong> the Hub answers “what’s alive right now” — and is honest when the answer is
+  nothing. Waiting things are simply present, bigger; finished things get one moment to be caught
+  (flick up, or the button) before the night clears them; keeping is an act, not a filing system.
+  <strong>Find:</strong> Always shelf + the Anytime strip — the stream never needs search because it’s
+  never long. <strong>New tool:</strong> a chip appended to Anytime, zero routing. <strong>Rematch:</strong>
+  pins and keeps come along (chip says so); Maya-bound remnants visibly leave; the stream starts empty,
+  which is the truth. <strong>Where it breaks:</strong> ephemerality has teeth — clear something a teen
+  loved and trust is gone; the tool library’s depth hides in a strip; and “what counts as alive” is a
+  rule that must stay dumb.
+  <div class="flag"><b>⚠ which-flow watch</b>
+    The clearing rule (what survives the night) and the stream’s order are policies — kept deterministic
+    here: waiting → half-done → ✦ → finished → yesterday. The ✦ slot stays capped at one, dismissible,
+    and clears itself even if ignored.</div>`;
+
+const NOTE_SP = html`
+  <strong>The bet:</strong> the relationship is a story, and the Hub is where it accumulates — history
+  isn’t a section, it’s the material. Pinch out and the seam makes rematch legible in one glance:
+  chapters end, you continue. <strong>Find:</strong> tools live in a fixed tray (never buried in time);
+  memories via zoom — spot the dense band, dive. <strong>Pin:</strong> long-press peels an entry onto
+  the cover. <strong>Keep:</strong> everything is kept by default; “tuck away” (swipe left) is the
+  let-go. <strong>New tool:</strong> tray append, zero routing. <strong>Where it breaks:</strong> weak
+  “do” energy — it’s reflective, not active, so tools feel bolted on; long-press and pinch are
+  invisible until found; and a thin week reads as an empty diary, which can sting.
+  <div class="flag"><b>⚠ which-flow watch</b>
+    Where the ✦ suggestion inserts itself in the stream is an editorial rule (fixed: after today’s open
+    loops). Chapter compression must never hide the teen’s own items — carried entries always render
+    above the seam, unconditionally.</div>`;
+
+function App() {
+  return html`
+    <div>
+      <header class="page-head">
+        <span class="tag">MMT-0 · hub restart · step 2 — all three builds</span>
+        <h1>Three Hubs, three verbs-first interaction models</h1>
+        <p>Each phone: chat → swipe right into the Hub. Homeplace: hold to jiggle, drag to dock, drop on
+           the box to keep. Today & Always: flick a finished thing up to catch it; “☾ end day” clears the
+           stream. The Spine: long-press pins to the cover, swipe-left tucks, pinch (or the toggle) zooms
+           days → weeks → story. “+1 tool” inserts a tool with zero routing everywhere. State c plays each
+           concept’s rematch scene. Verbs scorecard + recommendation at the bottom.</p>
+      </header>
+      <div class="stage">
+        <${HomeplaceUnit} />
+        <${GenUnit} title="2 · Today & Always" sub="steals Arc (today clears itself) + Journal (collect) + Things (checkoff)"
+          Phone=${TodayAlwaysPhone} note=${NOTE_TA} day=${true} />
+        <${GenUnit} title="3 · The Spine" sub="steals Apple Journal (stream + inline suggestions) + pinch-zoom chapters"
+          Phone=${SpinePhone} note=${NOTE_SP} />
+      </div>
+      <section class="compare">
+        <h2 class="t-t22" style=${{ marginBottom: 4 }}>The nine verbs</h2>
+        <div class="t-c13 c2" style=${{ marginBottom: 14 }}>✓ native to the concept · ~ works with effort · ✗ fights it</div>
+        <div class="compare-card"><table>
+          <thead><tr><th>Verb</th><th>1 · Homeplace</th><th>2 · Today & Always</th><th>3 · The Spine</th></tr></thead>
+          <tbody>
+            <tr><td>Find fast (3am)</td>
+              <td><span class="s good">✓</span>spatial memory + dock — zero reading</td>
+              <td><span class="s good">✓</span>Always shelf; stream is never long</td>
+              <td><span class="s mid">~</span>tray for tools; memories need zoom</td></tr>
+            <tr><td>Pin</td>
+              <td><span class="s good">✓</span>drag to dock (jiggle) or one tap</td>
+              <td><span class="s good">✓</span>drag a chip up / one tap</td>
+              <td><span class="s good">✓</span>long-press peels to cover — most delightful</td></tr>
+            <tr><td>Collect / keep</td>
+              <td><span class="s good">✓</span>drop on the box; box is a place</td>
+              <td><span class="s good">✓</span>the catch-flick — keeping is an act</td>
+              <td><span class="s good">✓</span>kept by default; starring is emphasis</td></tr>
+            <tr><td>Dismiss / snooze, no guilt</td>
+              <td><span class="s mid">~</span>✕ hides (reversible), but you must act</td>
+              <td><span class="s good">✓</span>do nothing — the night does it for you</td>
+              <td><span class="s mid">~</span>swipe-left tucks; nothing expires</td></tr>
+            <tr><td>Arrange (optional)</td>
+              <td><span class="s good">✓</span>jiggle is the whole grammar; ignorable</td>
+              <td><span class="s mid">~</span>only the shelf order is yours</td>
+              <td><span class="s mid">~</span>only the cover is yours; time owns the rest</td></tr>
+            <tr><td>Notice without nagging</td>
+              <td><span class="s good">✓</span>waiting renders inside the mentor widget</td>
+              <td><span class="s good">✓</span>waiting things are simply present, bigger</td>
+              <td><span class="s good">✓</span>open loops cling to today’s edge as outlines</td></tr>
+            <tr><td>Return to half-done</td>
+              <td><span class="s mid">~</span>goal widget badge; easy to miss</td>
+              <td><span class="s good">✓</span>half-done is a first-class stream entry</td>
+              <td><span class="s mid">~</span>an outline at today’s edge</td></tr>
+            <tr><td>Discover a tool</td>
+              <td><span class="s mid">~</span>the ✦ tile; page never teaches</td>
+              <td><span class="s good">✓</span>✦ + discover entries land in the flow</td>
+              <td><span class="s good">✓</span>inline suggestions read as journal margin notes</td></tr>
+            <tr><td>Carry through rematch</td>
+              <td><span class="s good">✓</span>the room doesn’t move; cards leave, box pulses</td>
+              <td><span class="s good">✓</span>pins + keeps cross; stream honestly empties</td>
+              <td><span class="s good">✓</span>the seam — best rematch scene of the three</td></tr>
+          </tbody>
+        </table></div>
+        <div class="reco">
+          <h3>Recommendation</h3>
+          <strong>Ship Today & Always as the Hub’s engine, with The Spine behind its Keeps tile.</strong>
+          It’s the only concept whose idle state is honest — when nothing needs the teen, the page says
+          so and stays quiet, which is the deepest form of “never nags.” Its dismiss verb is structural
+          (the night clears; no guilt UI needed), its stream order is a dumb deterministic rule rather
+          than a per-teen policy, and a new tool is a chip append. Its real risk — clearing something
+          loved — is exactly what the catch-flick is for, and it’s a testable moment. Homeplace is the
+          best pure home and wins if teens turn out to arrange (watch jiggle usage in testing); its cost
+          is a default-layout curation policy. The Spine shouldn’t compete for the Hub slot — reflective,
+          not active — but it is the right long-term memory surface: tap Keeps in Today & Always and you
+          should land in the Spine’s chapters, seam and all.
+        </div>
+      </section>
+    </div>`;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
+</script>
+</body>
+</html>

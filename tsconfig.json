@@ -1,0 +1,28 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@assets/*": [
+        "./assets/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
+  ],
+  // vendor/ is the vendored @somethings-ui source; it type-checks against its
+  // own tsconfig upstream — only the files the app imports are checked here.
+  "exclude": [
+    "node_modules",
+    "dist",
+    "vendor"
+  ]
+}

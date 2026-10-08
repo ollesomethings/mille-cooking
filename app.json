@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Somethings",
+    "slug": "mobile-design-proto",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "somethings-demo",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FDFCF9"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.somethings.demo"
+    },
+    "android": {
+      "package": "com.somethings.demo",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FDFCF9"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/TWKLausanne-400.ttf",
+            "./assets/fonts/TWKLausanne-400Italic.ttf",
+            "./assets/fonts/Avantt-Bold.ttf",
+            "./assets/fonts/Avantt-BoldItalic.ttf",
+            "./assets/fonts/GeistMono-Medium.ttf",
+            "./assets/fonts/CedarvilleCursive-Regular.ttf"
+          ]
+        }
+      ],
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1c47d58f-3bb5-4250-8c87-d76ef02d97a0"
+      }
+    }
+  }
+}
