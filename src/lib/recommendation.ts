@@ -25,6 +25,6 @@ export function getRecommendation(
     const tool = CALM_TOOLS.find(t => t.id === 'calm_deck');
     if (tool) return { tool, line: 'Too wired to sleep? Pull one card.' };
   }
-  const tool = SELFCARE_TOOLS.find(t => t.id === 'breathe');
+  const tool = SELFCARE_TOOLS.find(t => t.id === 'ground');
   return tool ? { tool, line: "It's late. This one helps." } : null;
 }

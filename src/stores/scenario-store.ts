@@ -3,6 +3,7 @@ import { hubEntities } from '@/data/hub-entities';
 import { initialGoals } from '@/data/goals';
 import { mentorCandidates } from '@/data/mentor-candidates';
 import { hubPhotos, initialMessages, mentor } from '@/data/mock';
+import { MENTOR_FIRST_PLAYLIST } from '@/data/playlists';
 import { useAppStore } from '@/stores/app-store';
 import { useGoalsStore } from '@/stores/goals-store';
 import { useHubStore } from '@/stores/hub-store';
@@ -50,6 +51,12 @@ interface ScenarioState {
   /** "This is a demo" dialog, shown once per session over everything */
   disclaimerSeen: boolean;
   setDisclaimerSeen: (b: boolean) => void;
+  /** Chat coach mark pointing at the "Your space" pill, once per session */
+  hubCoachSeen: boolean;
+  setHubCoachSeen: (b: boolean) => void;
+  /** Olle's version: Home/Journey tab layout and prompt-first journal */
+  ollesVersion: boolean;
+  setOllesVersion: (b: boolean) => void;
   chooseScenario: (mode: ScenarioMode) => void;
   /** New-teen onboarding finished: seed the fresh account's first content. */
   completeOnboarding: (name: string, mentorId?: string) => void;
@@ -84,6 +91,10 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
   setHubHint: hubHint => set({ hubHint }),
   disclaimerSeen: false,
   setDisclaimerSeen: disclaimerSeen => set({ disclaimerSeen }),
+  hubCoachSeen: false,
+  setHubCoachSeen: hubCoachSeen => set({ hubCoachSeen }),
+  ollesVersion: true,
+  setOllesVersion: ollesVersion => set({ ollesVersion }),
 
   chooseScenario: mode => {
     if (mode === 'new') {
@@ -127,6 +138,18 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       owner: { name: mentor.name, avatar: mentor.avatar, role: 'mentor' },
       note: { content: welcomeNoteContent(teenName) },
     });
+
+    // ...and auto-delivers the mentor's "this is my vibe" playlist (made
+    // once during mentor onboarding). Added after the note so it sits at
+    // the top of a new teen's hub. Works offline — it's pre-left content.
+    const playlistId = useHubStore.getState().addEntity({
+      entityType: 'playlist',
+      owner: { name: mentor.name, avatar: mentor.avatar, role: 'mentor' },
+      playlist: { ...MENTOR_FIRST_PLAYLIST, reactions: {} },
+    });
+    useAppStore
+      .getState()
+      .addSystemMessage(`${mentor.name} made you a playlist`, 'playlist-event', playlistId);
 
     // Mentor offline (late-night signup): NO live greeting — the chat's
     // offline block shows the automated holding message instead. We never

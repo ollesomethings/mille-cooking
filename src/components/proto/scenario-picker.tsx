@@ -101,6 +101,8 @@ export function ScenarioPicker({
   const setMentalHealthTools = useScenarioStore(s => s.setMentalHealthTools);
   const mentorTools = useScenarioStore(s => s.mentorTools);
   const setMentorTools = useScenarioStore(s => s.setMentorTools);
+  const ollesVersion = useScenarioStore(s => s.ollesVersion);
+  const setOllesVersion = useScenarioStore(s => s.setOllesVersion);
 
   // The splash renders full-bleed — dock back into the frame on pick.
   useEffect(() => {
@@ -222,6 +224,13 @@ export function ScenarioPicker({
           entering={FadeInDown.delay(560).duration(300)}
           className="rounded-3xl border border-[#DCD7CD] bg-white overflow-hidden"
         >
+          <ToggleRow
+            label="Olle's version"
+            sub="Home/Journey tabs & prompt-first journal"
+            value={ollesVersion}
+            onToggle={setOllesVersion}
+          />
+          <View style={{ height: 1, backgroundColor: '#EFEBE4', marginLeft: 16 }} />
           <ToggleRow
             label="Mentor offline"
             sub="Late night, no live replies"

@@ -4,11 +4,13 @@ import { mentor } from '@/data/mock';
 import { holdingMessage, mentorReturnCountdown } from '@/data/offline';
 import { track } from '@/lib/analytics';
 import { EASE_STANDARD } from '@/lib/motion';
+import { useHubStore } from '@/stores/hub-store';
 import { useNavStore } from '@/stores/nav-store';
 import { useSelfcareStore } from '@/stores/selfcare-store';
 import { Scribbles } from '@/lib/scribbles';
 import { Image } from 'expo-image';
-import { ChevronRight, MoonStar, X } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { ChevronRight, Disc3, MoonStar, Sparkle, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
@@ -20,16 +22,24 @@ import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
  * 1. Live countdown to their return ("back in 9h 24m")
  * 2. The mentor's automated holding message (labeled — we never simulate
  *    a live person)
- * 3. A gentle, dismissible pointer to the Hub (the teen's space). A heads-up,
+ * 3. A one-tap chip straight into the grounding exercise — a dysregulated
+ *    teen shouldn't have to discover the Hub first
+ * 4. A gentle, dismissible pointer to the Hub (the teen's space). A heads-up,
  *    not a flow: no modal, no auto-launch.
- * 4. The crisis-resources link, same reach as everywhere else
+ * 5. The crisis-resources link, same reach as everywhere else
  */
 const enter = (delay: number) =>
   FadeInDown.delay(delay).duration(420).easing(EASE_STANDARD);
 
 export function MentorOfflineBlock() {
+  const router = useRouter();
   const pointerDismissed = useSelfcareStore(s => s.spacePointerDismissed);
   const dismissPointer = useSelfcareStore(s => s.setSpacePointerDismissed);
+  // The mentor's auto-delivered first playlist — someone to get to know
+  const mentorPlaylistId = useHubStore(
+    s =>
+      s.entities.find(e => e.entityType === 'playlist' && e.owner.role === 'mentor')?.id,
+  );
 
   // Live countdown, refreshed every 30s
   const [countdown, setCountdown] = useState(() => mentorReturnCountdown());
@@ -72,7 +82,49 @@ export function MentorOfflineBlock() {
         </View>
       </Animated.View>
 
-      {/* 3 — gentle pointer to Your space (dismissible, never a takeover) */}
+      {/* 3 — one-tap chips: something to do, and someone to get to know */}
+      <View className="flex-row flex-wrap mt-4" style={{ gap: 8 }}>
+        <Animated.View entering={enter(380)}>
+          <PressableScale
+            scaleTo={0.97}
+            onPress={() => {
+              track('offline_ground_chip_tapped', {});
+              router.push('/selfcare/ground');
+            }}
+            className="flex-row items-center rounded-full border border-[#D9E8C4] px-4"
+            style={{ height: 44, gap: 8, backgroundColor: '#F4FBE8' }}
+            hitSlop={4}
+          >
+            <Sparkle size={15} color="#4E8F3D" strokeWidth={2.2} />
+            <Text className="text-body-2 text-primary">
+              2 minutes, out of your head
+            </Text>
+            <ChevronRight size={16} color="#4E8F3D" strokeWidth={2.2} />
+          </PressableScale>
+        </Animated.View>
+        {mentorPlaylistId && (
+          <Animated.View entering={enter(460)}>
+            <PressableScale
+              scaleTo={0.97}
+              onPress={() => {
+                track('offline_playlist_chip_tapped', {});
+                router.push(`/hub/playlist/${mentorPlaylistId}`);
+              }}
+              className="flex-row items-center rounded-full border border-[#E8D9F2] px-4"
+              style={{ height: 44, gap: 8, backgroundColor: '#F4F1FF' }}
+              hitSlop={4}
+            >
+              <Disc3 size={15} color="#8E3FE0" strokeWidth={2.2} />
+              <Text className="text-body-2 text-primary">
+                {mentor.name} made you a playlist
+              </Text>
+              <ChevronRight size={16} color="#8E3FE0" strokeWidth={2.2} />
+            </PressableScale>
+          </Animated.View>
+        )}
+      </View>
+
+      {/* 4 — gentle pointer to Your space (dismissible, never a takeover) */}
       {!pointerDismissed && (
         <Animated.View entering={enter(480)} exiting={FadeOut.duration(200)}>
           <PressableScale
@@ -115,7 +167,7 @@ export function MentorOfflineBlock() {
         </Animated.View>
       )}
 
-      {/* 4 — crisis resources, never buried */}
+      {/* 5 — crisis resources, never buried */}
       <Animated.View entering={FadeIn.delay(650).duration(450)} className="mt-3 mb-2">
         <TalkNowLink screen="chat_offline" label="Need to talk to someone tonight?" />
       </Animated.View>

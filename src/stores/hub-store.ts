@@ -13,7 +13,12 @@ interface HubState {
 
   /** Hub grid content, newest first (real app: ShareableEntity list) */
   entities: HubEntity[];
-  addEntity: (entity: Omit<HubEntity, 'id' | 'createdAt'>) => void;
+  /** Returns the new entity's id (chat event lines link back to it) */
+  addEntity: (entity: Omit<HubEntity, 'id' | 'createdAt'>) => string;
+  /** Toggle a reaction on one playlist song (teen) or add one (mentor) */
+  reactToSong: (entityId: string, songId: string, who: 'teen' | 'mentor') => void;
+  /** The simulated online mentor follows up at most once per playlist */
+  markMentorNoticed: (entityId: string) => void;
 
   /** In-flight moment draft (real app: draft moment + presigned uploads) */
   draftImages: string[];
@@ -37,12 +42,39 @@ export const useHubStore = create<HubState>(set => ({
   setName: name => set({ name: name.slice(0, 16) }),
 
   entities: hubEntities,
-  addEntity: entity =>
+  addEntity: entity => {
+    const id = `entity-${nextEntityId++}`;
     set(s => ({
-      entities: [
-        { ...entity, id: `entity-${nextEntityId++}`, createdAt: 'Just now' },
-        ...s.entities,
-      ],
+      entities: [{ ...entity, id, createdAt: 'Just now' }, ...s.entities],
+    }));
+    return id;
+  },
+  markMentorNoticed: entityId =>
+    set(s => ({
+      entities: s.entities.map(e =>
+        e.id === entityId && e.playlist
+          ? { ...e, playlist: { ...e.playlist, mentorNoticed: true } }
+          : e,
+      ),
+    })),
+  reactToSong: (entityId, songId, who) =>
+    set(s => ({
+      entities: s.entities.map(e => {
+        if (e.id !== entityId || !e.playlist) return e;
+        const current = e.playlist.reactions[songId] ?? [];
+        const next = current.includes(who)
+          ? who === 'teen'
+            ? current.filter(w => w !== who) // teens can un-react
+            : current
+          : [...current, who];
+        return {
+          ...e,
+          playlist: {
+            ...e.playlist,
+            reactions: { ...e.playlist.reactions, [songId]: next },
+          },
+        };
+      }),
     })),
 
   draftImages: [],
@@ -59,3 +91,14 @@ export const useHubStore = create<HubState>(set => ({
   markInfoSeen: kind =>
     set(s => ({ seenInfoSheets: { ...s.seenInfoSheets, [kind]: true } })),
 }));
+
+declare global {
+  interface Window {
+    /** Headless-verification hook: the hub store, dev builds only */
+    __hub?: typeof useHubStore;
+  }
+}
+
+if (typeof window !== 'undefined' && __DEV__) {
+  window.__hub = useHubStore;
+}

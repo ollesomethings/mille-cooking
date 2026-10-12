@@ -241,7 +241,35 @@ function StarGlyph({ color }: { color: string }) {
   );
 }
 
+function PizzaGlyph({ color }: { color: string }) {
+  return (
+    <Svg viewBox="0 0 48 48" width="100%" height="100%">
+      {/* a hot-takes slice */}
+      <Path
+        d="M9 13 C18 8 30 8 39 13 L25 42 C24.6 43 23.4 43 23 42 Z"
+        stroke={color}
+        strokeWidth={STROKE}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M8 13.5 C18 8 30 8 40 13.5"
+        stroke={color}
+        strokeWidth={STROKE + 1}
+        strokeLinecap="round"
+        fill="none"
+        opacity={0.55}
+      />
+      <Circle cx="20" cy="21" r="2.6" fill={color} opacity={0.55} />
+      <Circle cx="29" cy="25" r="2.6" fill={color} opacity={0.55} />
+      <Circle cx="23" cy="31" r="2.2" fill={color} opacity={0.55} />
+    </Svg>
+  );
+}
+
 const GLYPHS: Record<string, (p: { color: string }) => ReactElement> = {
+  hot_takes: PizzaGlyph,
   star: StarGlyph,
   questions: QuestionsGlyph,
   songs: SongsGlyph,

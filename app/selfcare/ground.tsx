@@ -1,14 +1,22 @@
 import { ConfettiBurst } from '@/components/proto/bursts';
 import { TalkNowLink } from '@/components/proto/talk-now-link';
 import { PressableScale } from '@/components/ui/pressable-scale';
+import { mentor, teen } from '@/data/mock';
+import { MENTOR_BACK_AT } from '@/data/offline';
 import { track } from '@/lib/analytics';
 import { buzz } from '@/lib/buzz';
+import { Moodies, assetUri } from '@/lib/scribbles';
+import { useAppStore } from '@/stores/app-store';
+import { useNavStore } from '@/stores/nav-store';
+import { useScenarioStore } from '@/stores/scenario-store';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Camera } from 'lucide-react-native';
+import { Camera, Check, Heart, X } from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import Animated, {
   Easing,
+  FadeIn,
   FadeInDown,
   ZoomIn,
   useAnimatedStyle,
@@ -19,6 +27,8 @@ import Animated, {
 import { EASE_STANDARD } from '@/lib/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const SPRAY = assetUri(require('@assets/illustrations/spray.png'));
+
 const AnimatedEntrance = ({ children }: { children: React.ReactNode }) => (
   <Animated.View entering={FadeInDown.delay(200).springify().damping(18)}>
     {children}
@@ -26,20 +36,28 @@ const AnimatedEntrance = ({ children }: { children: React.ReactNode }) => (
 );
 
 /**
- * 5-4-3-2-1 sensory grounding as a camera scavenger hunt. The camera is a
- * live LOCAL preview only — nothing is captured, recorded, or uploaded,
- * and the screen says so. "Found one" grabs the current frame just long
- * enough to blow it up: a polaroid pops in, then explodes into confetti.
- * The frame lives in memory for ~a second and is thrown away.
- * If the camera is unavailable or denied, the exercise still works.
+ * "Back to your senses" — 5-4-3-2-1 sensory grounding. Tap-based by
+ * default; the camera is OPT-IN, for the "see" step only, so no browser
+ * permission prompt ever fires mid-crisis uninvited. When on, it's a live
+ * LOCAL preview — nothing captured, recorded, or uploaded, and the screen
+ * says so. "I see one" grabs the current frame just long enough to blow it
+ * up (polaroid → confetti, in memory ~a second, then thrown away).
+ *
+ * Every step has a no-fail skip ("still counts"). The ending is a one-tap
+ * check-in that branches: feeling better gets the hope-loop back to the
+ * mentor (plus opt-in "let them know" — teen-controlled, labeled, never a
+ * simulated reply); feeling the same gets "go again," a slower tool, and
+ * the crisis line up front.
  */
 const STEPS = [
-  { count: 5, line: 'Point your camera at 5 things you can see' },
-  { count: 4, line: 'Find 4 things you can touch' },
-  { count: 3, line: 'Listen for 3 things you can hear' },
-  { count: 2, line: 'Find 2 things you can smell' },
-  { count: 1, line: 'Find 1 thing you can taste' },
+  { count: 5, sense: 'see', line: 'Find 5 things you can see', cta: 'I see one' },
+  { count: 4, sense: 'touch', line: 'Find 4 things you can touch', cta: 'I can feel it' },
+  { count: 3, sense: 'hear', line: 'Listen for 3 things you can hear', cta: 'I hear one' },
+  { count: 2, sense: 'smell', line: 'Find 2 things you can smell', cta: 'Got one' },
+  { count: 1, sense: 'taste', line: 'Find 1 thing you can taste', cta: 'Found it' },
 ] as const;
+
+type Stage = 'steps' | 'checkin' | 'better' | 'same';
 
 /** Web-only live camera preview via getUserMedia — purely local. */
 function LocalCameraPreview({
@@ -178,47 +196,352 @@ function SnapExplosion({ uri }: { uri: string | null }) {
 export default function Ground() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const mentorOffline = useScenarioStore(s => s.mentorOffline);
+  const [stage, setStage] = useState<Stage>('steps');
   const [stepIndex, setStepIndex] = useState(0);
   const [found, setFound] = useState(0);
-  const [cameraOff, setCameraOff] = useState(false);
+  // Camera: opt-in, "see" step only. 'off' until the teen asks for it.
+  const [cameraOn, setCameraOn] = useState(false);
+  const [cameraFailed, setCameraFailed] = useState(false);
   const [snap, setSnap] = useState<{ id: number; uri: string | null } | null>(null);
+  const [sharedWithMentor, setSharedWithMentor] = useState(false);
   const startedAt = useRef(Date.now());
   const videoElRef = useRef<HTMLVideoElement | null>(null);
   const snapId = useRef(1);
 
   const step = STEPS[stepIndex];
   const remaining = step.count - found;
+  const seeStep = stepIndex === 0;
+  const cameraLive = cameraOn && !cameraFailed && seeStep;
 
-  const foundOne = () => {
-    buzz.medium();
-    // Blow up what the camera sees right now (transient, in-memory only)
-    const uri = Platform.OS === 'web' && !cameraOff ? captureFrame(videoElRef.current) : null;
-    const id = snapId.current++;
-    setSnap({ id, uri });
-    setTimeout(() => setSnap(s => (s && s.id === id ? null : s)), 1400);
-
-    if (found + 1 < step.count) {
-      setFound(found + 1);
-      return;
-    }
-    if (stepIndex + 1 < STEPS.length) {
-      buzz.success();
-      setStepIndex(stepIndex + 1);
-      setFound(0);
-      return;
-    }
+  const finishSteps = () => {
     track('offline_tool_completed', {
       tool: 'ground',
       duration_s: Math.round((Date.now() - startedAt.current) / 1000),
     });
-    router.replace('/selfcare/done?tool=ground');
+    buzz.success();
+    setStage('checkin');
   };
 
+  const nextStep = () => {
+    if (stepIndex + 1 < STEPS.length) {
+      buzz.success();
+      setStepIndex(stepIndex + 1);
+      setFound(0);
+    } else {
+      finishSteps();
+    }
+  };
+
+  const foundOne = () => {
+    buzz.medium();
+    // "See" step with camera on: blow up what it sees right now
+    // (transient, in-memory only)
+    if (cameraLive && Platform.OS === 'web') {
+      const uri = captureFrame(videoElRef.current);
+      const id = snapId.current++;
+      setSnap({ id, uri });
+      setTimeout(() => setSnap(s => (s && s.id === id ? null : s)), 1400);
+    }
+    if (found + 1 < step.count) setFound(found + 1);
+    else nextStep();
+  };
+
+  const skipSense = () => {
+    buzz.tick();
+    track('ground_sense_skipped', { sense: step.sense });
+    nextStep();
+  };
+
+  const leaveEarly = () => {
+    track('ground_exit_early', { step: step.sense, found });
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  };
+
+  const checkIn = (feeling: 'better' | 'same') => {
+    buzz.light();
+    track('ground_checkin', { feeling });
+    setStage(feeling);
+  };
+
+  const goAgain = () => {
+    buzz.medium();
+    track('ground_restart', {});
+    startedAt.current = Date.now();
+    setStepIndex(0);
+    setFound(0);
+    setCameraOn(false);
+    setStage('steps');
+  };
+
+  const shareWithMentor = () => {
+    if (sharedWithMentor) return;
+    buzz.success();
+    track('ground_shared_with_mentor', {});
+    // A labeled event line in chat — the teen chose to disclose; the mentor
+    // never "replies" to it (we never simulate a live person).
+    useAppStore
+      .getState()
+      .addSystemMessage(`${teen.name} did Back to your senses`, 'swap-event');
+    setSharedWithMentor(true);
+  };
+
+  const backToSpace = () => {
+    useNavStore.getState().requestHub('tool_exit');
+    if (router.canGoBack()) router.dismissAll();
+    else router.replace('/');
+  };
+
+  /* ------------------------------ check-in ------------------------------ */
+  if (stage === 'checkin') {
+    return (
+      <View
+        className="flex-1 bg-white px-6"
+        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+      >
+        <View className="flex-1 items-center justify-center">
+          <Animated.Text
+            entering={FadeInDown.duration(420).easing(EASE_STANDARD)}
+            className="font-avantt-bold text-primary text-center"
+            style={{ fontSize: 30, lineHeight: 35 }}
+          >
+            How&apos;s your head now?
+          </Animated.Text>
+          <Animated.Text
+            entering={FadeInDown.delay(120).duration(380).easing(EASE_STANDARD)}
+            className="text-body-2 text-secondary text-center mt-2"
+          >
+            No wrong answer.
+          </Animated.Text>
+          <View className="flex-row mt-8" style={{ gap: 12, width: '100%' }}>
+            {(
+              [
+                { key: 'better', label: 'A little better', moodie: Moodies.pleased, bg: '#F4FBE8' },
+                { key: 'same', label: 'About the same', moodie: Moodies.tired, bg: '#EEF0FF' },
+              ] as const
+            ).map((opt, i) => (
+              <Animated.View
+                key={opt.key}
+                entering={FadeInDown.delay(240 + i * 110).springify().damping(16)}
+                style={{ flex: 1 }}
+              >
+                <PressableScale
+                  scaleTo={0.96}
+                  onPress={() => checkIn(opt.key)}
+                  className="items-center rounded-3xl px-4 py-6"
+                  style={{ backgroundColor: opt.bg }}
+                >
+                  <Image
+                    source={opt.moodie}
+                    style={{ width: 64, height: 64 }}
+                    contentFit="contain"
+                  />
+                  <Text
+                    className="font-avantt-bold text-primary text-center mt-3"
+                    style={{ fontSize: 16 }}
+                  >
+                    {opt.label}
+                  </Text>
+                </PressableScale>
+              </Animated.View>
+            ))}
+          </View>
+        </View>
+        <TalkNowLink screen="selfcare_ground_checkin" />
+      </View>
+    );
+  }
+
+  /* --------------------------- feeling better --------------------------- */
+  if (stage === 'better') {
+    return (
+      <View
+        className="flex-1 bg-white px-6"
+        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+      >
+        <View className="flex-1 items-center justify-center">
+          <View className="items-center justify-center">
+            <Animated.View
+              entering={FadeIn.delay(200).duration(700)}
+              style={{ position: 'absolute', width: 230, height: 230 }}
+            >
+              <Image
+                source={SPRAY}
+                style={{ width: '100%', height: '100%', opacity: 0.3 }}
+                contentFit="contain"
+                tintColor="#C2DF4F"
+              />
+            </Animated.View>
+            <Animated.View entering={ZoomIn.springify().damping(14)}>
+              <Image
+                source={Moodies.pleased}
+                style={{ width: 88, height: 88 }}
+                contentFit="contain"
+              />
+            </Animated.View>
+          </View>
+          <Animated.Text
+            entering={FadeInDown.delay(160).duration(400).easing(EASE_STANDARD)}
+            className="font-avantt-bold text-primary text-center mt-6"
+            style={{ fontSize: 30, lineHeight: 35 }}
+          >
+            That&apos;s a skill, not luck.
+          </Animated.Text>
+          <Animated.Text
+            entering={FadeInDown.delay(240).duration(400).easing(EASE_STANDARD)}
+            className="text-body-2 text-secondary text-center mt-3"
+            style={{ lineHeight: 22, maxWidth: 320 }}
+          >
+            You pulled yourself back with your own five senses. {mentor.name}{' '}
+            can help you build more moves like this — so these moments hit
+            softer.
+          </Animated.Text>
+
+          <Animated.View
+            entering={FadeInDown.delay(360).springify().damping(18)}
+            className="w-full mt-7"
+          >
+            {sharedWithMentor ? (
+              <View
+                className="h-14 flex-row items-center justify-center rounded-full bg-surfaces-z2 border border-surfaces-divider px-5"
+                style={{ gap: 8 }}
+              >
+                <Check size={17} color="#5FA74B" strokeWidth={2.4} />
+                <Text className="text-body-2 text-primary">
+                  {mentor.name} will see it{mentorOffline ? ` at ${MENTOR_BACK_AT}` : ''}
+                </Text>
+              </View>
+            ) : (
+              <Pressable
+                onPress={shareWithMentor}
+                className="h-14 flex-row items-center justify-center rounded-full border border-surfaces-divider bg-white active:opacity-70 px-5"
+                style={{ gap: 10 }}
+              >
+                <Image
+                  source={{ uri: mentor.avatar }}
+                  style={{ width: 28, height: 28, borderRadius: 14 }}
+                />
+                <Text className="text-body-2 text-primary">
+                  Let {mentor.name} know I did this
+                </Text>
+              </Pressable>
+            )}
+            <Text className="text-body-3 text-tertiary text-center mt-2">
+              Totally optional — this stays private unless you share it.
+            </Text>
+          </Animated.View>
+        </View>
+
+        <Animated.View
+          entering={FadeInDown.delay(480).duration(400).easing(EASE_STANDARD)}
+          style={{ gap: 12 }}
+        >
+          <Pressable
+            onPress={backToSpace}
+            className="h-14 items-center justify-center rounded-full bg-brand-trueBlack active:opacity-85"
+          >
+            <Text className="text-body-2 text-white">Back to your space</Text>
+          </Pressable>
+          <TalkNowLink screen="selfcare_ground_better" />
+        </Animated.View>
+      </View>
+    );
+  }
+
+  /* -------------------------- still feeling it -------------------------- */
+  if (stage === 'same') {
+    return (
+      <View
+        className="flex-1 bg-white px-6"
+        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+      >
+        <View className="flex-1 items-center justify-center">
+          <Animated.View entering={ZoomIn.springify().damping(14)}>
+            <Image
+              source={Moodies.tired}
+              style={{ width: 80, height: 80 }}
+              contentFit="contain"
+            />
+          </Animated.View>
+          <Animated.Text
+            entering={FadeInDown.delay(140).duration(400).easing(EASE_STANDARD)}
+            className="font-avantt-bold text-primary text-center mt-6"
+            style={{ fontSize: 30, lineHeight: 35 }}
+          >
+            That&apos;s okay.
+          </Animated.Text>
+          <Animated.Text
+            entering={FadeInDown.delay(220).duration(400).easing(EASE_STANDARD)}
+            className="text-body-2 text-secondary text-center mt-3"
+            style={{ lineHeight: 22, maxWidth: 310 }}
+          >
+            Sometimes it takes a couple rounds — that&apos;s not failing,
+            that&apos;s how it works. You can go again, or try something
+            slower.
+          </Animated.Text>
+
+          {/* Crisis resources step UP from a footer link to a card here */}
+          <Animated.View
+            entering={FadeInDown.delay(340).springify().damping(18)}
+            className="w-full mt-7"
+          >
+            <PressableScale
+              scaleTo={0.98}
+              onPress={() => {
+                track('crisis_resources_clicked', { screen: 'selfcare_ground_same' });
+                router.push('/resources');
+              }}
+              className="flex-row items-center rounded-3xl px-5 py-4"
+              style={{ backgroundColor: '#FFF0F4', gap: 12 }}
+            >
+              <View
+                className="items-center justify-center rounded-full bg-white"
+                style={{ width: 40, height: 40 }}
+              >
+                <Heart size={19} color="#E85C82" strokeWidth={2.2} />
+              </View>
+              <View className="flex-1">
+                <Text className="font-avantt-bold text-primary" style={{ fontSize: 15 }}>
+                  Need a person tonight?
+                </Text>
+                <Text className="text-body-3 text-secondary" style={{ marginTop: 1 }}>
+                  Real people, right now — call or text.
+                </Text>
+              </View>
+            </PressableScale>
+          </Animated.View>
+        </View>
+
+        <Animated.View
+          entering={FadeInDown.delay(440).duration(400).easing(EASE_STANDARD)}
+          style={{ gap: 12 }}
+        >
+          <Pressable
+            onPress={goAgain}
+            className="h-14 items-center justify-center rounded-full bg-brand-trueBlack active:opacity-85"
+          >
+            <Text className="text-body-2 text-white">Go again</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.replace('/selfcare/breathe')}
+            className="h-12 items-center justify-center active:opacity-60"
+          >
+            <Text className="text-body-2 text-primary underline">
+              Try breathing instead
+            </Text>
+          </Pressable>
+        </Animated.View>
+      </View>
+    );
+  }
+
+  /* ------------------------------- steps -------------------------------- */
   return (
     <View className="flex-1 bg-brand-trueBlack">
-      {!cameraOff && (
+      {cameraLive && (
         <LocalCameraPreview
-          onUnavailable={() => setCameraOff(true)}
+          onUnavailable={() => setCameraFailed(true)}
           videoElRef={videoElRef}
         />
       )}
@@ -232,28 +555,73 @@ export default function Ground() {
         style={{ height: 300, backgroundColor: 'rgba(0,0,0,0.45)' }}
       />
 
-      <View className="flex-1 px-6" style={{ paddingTop: insets.top + 16 }}>
-        <Animated.View
-          entering={FadeInDown.duration(420).easing(EASE_STANDARD)}
-          className="self-center flex-row items-center rounded-full px-4 py-2"
-          style={{ backgroundColor: 'rgba(0,0,0,0.55)', gap: 6 }}
-        >
-          <Camera size={13} color="#FFFFFF" strokeWidth={2} />
-          <Text className="text-white text-center" style={{ fontSize: 12, fontFamily: 'TWKLausanne-400' }}>
-            Nothing is recorded or uploaded — this stays on your phone.
-          </Text>
-        </Animated.View>
+      <View className="flex-1 px-6" style={{ paddingTop: insets.top + 8 }}>
+        <View className="flex-row items-center justify-between" style={{ minHeight: 44 }}>
+          {cameraLive ? (
+            <Animated.View
+              entering={FadeIn.duration(400)}
+              className="flex-1 flex-row items-center rounded-full px-4 py-2 mr-2"
+              style={{ backgroundColor: 'rgba(0,0,0,0.55)', gap: 6, alignSelf: 'flex-start' }}
+            >
+              <Camera size={13} color="#FFFFFF" strokeWidth={2} />
+              <Text
+                className="text-white flex-1"
+                style={{ fontSize: 12, fontFamily: 'TWKLausanne-400' }}
+              >
+                Nothing is recorded or uploaded — this stays on your phone.
+              </Text>
+            </Animated.View>
+          ) : (
+            <View className="flex-1" />
+          )}
+          <Pressable
+            onPress={leaveEarly}
+            className="h-11 w-11 items-center justify-center rounded-full active:opacity-60"
+            style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+            hitSlop={6}
+            accessibilityLabel="Leave"
+          >
+            <X size={20} color="#FFFFFF" strokeWidth={2} />
+          </Pressable>
+        </View>
 
         <Animated.Text
           key={`line-${stepIndex}`}
           entering={FadeInDown.delay(120).duration(380).easing(EASE_STANDARD)}
-          className="font-avantt-bold text-white mt-6"
+          className="font-avantt-bold text-white mt-5"
           style={{ fontSize: 28, lineHeight: 33, textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 8 }}
         >
-          {cameraOff && stepIndex === 0
-            ? 'Look around for 5 things you can see'
-            : step.line}
+          {cameraLive ? 'Point your camera at 5 things you can see' : step.line}
         </Animated.Text>
+
+        {/* Camera is opt-in, "see" step only — the browser permission
+            prompt never fires unless the teen asks for it */}
+        {seeStep && !cameraOn && !cameraFailed && (
+          <Animated.View
+            entering={FadeInDown.delay(300).duration(400).easing(EASE_STANDARD)}
+            style={{ alignSelf: 'flex-start' }}
+          >
+            <Pressable
+              onPress={() => {
+                track('ground_camera_opt_in', {});
+                setCameraOn(true);
+              }}
+              className="mt-4 flex-row items-center rounded-full px-4 active:opacity-70"
+              style={{
+                height: 44,
+                gap: 8,
+                backgroundColor: 'rgba(255,255,255,0.14)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.35)',
+              }}
+            >
+              <Camera size={16} color="#FFFFFF" strokeWidth={2} />
+              <Text className="text-white" style={{ fontSize: 14, fontFamily: 'TWKLausanne-400' }}>
+                Use my camera — it stays on your phone
+              </Text>
+            </Pressable>
+          </Animated.View>
+        )}
 
         <View className="flex-1" />
 
@@ -265,23 +633,47 @@ export default function Ground() {
         >
           {remaining}
         </Animated.Text>
-        <Text className="text-white text-center mb-4" style={{ fontFamily: 'TWKLausanne-400', fontSize: 14, opacity: 0.85 }}>
+        <Text
+          className="text-white text-center mb-4"
+          style={{ fontFamily: 'TWKLausanne-400', fontSize: 14, opacity: 0.85 }}
+        >
           to go
         </Text>
 
         <AnimatedEntrance>
-        <PressableScale
-          scaleTo={0.97}
-          onPress={foundOne}
-          className="h-16 items-center justify-center rounded-full bg-white active:opacity-90"
-        >
-          <Text className="font-avantt-bold text-primary" style={{ fontSize: 19 }}>
-            Found one
-          </Text>
-        </PressableScale>
+          <PressableScale
+            scaleTo={0.97}
+            onPress={foundOne}
+            className="h-16 items-center justify-center rounded-full bg-white active:opacity-90"
+          >
+            <Text className="font-avantt-bold text-primary" style={{ fontSize: 19 }}>
+              {step.cta}
+            </Text>
+          </PressableScale>
         </AnimatedEntrance>
 
-        <View style={{ paddingBottom: Math.max(insets.bottom, 16), paddingTop: 8 }}>
+        {/* No-fail escape: taste at 2am shouldn't feel like losing */}
+        <Pressable
+          onPress={skipSense}
+          className="items-center justify-center active:opacity-60"
+          style={{ minHeight: 44, marginTop: 2 }}
+          hitSlop={6}
+        >
+          <Text
+            className="text-white underline"
+            style={{
+              fontFamily: 'TWKLausanne-400',
+              fontSize: 14,
+              opacity: 0.8,
+              textShadowColor: 'rgba(0,0,0,0.5)',
+              textShadowRadius: 6,
+            }}
+          >
+            Can&apos;t find one? Skip it — still counts.
+          </Text>
+        </Pressable>
+
+        <View style={{ paddingBottom: Math.max(insets.bottom, 16), paddingTop: 4 }}>
           <TalkNowLink screen="selfcare_ground" light />
         </View>
       </View>

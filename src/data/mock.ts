@@ -69,8 +69,10 @@ export interface ChatMessage {
   from: 'teen' | 'mentor' | 'system';
   text: string;
   timestamp?: string;
-  kind?: 'text' | 'swap-event' | 'wall-card' | 'goal-nudge';
+  kind?: 'text' | 'swap-event' | 'wall-card' | 'goal-nudge' | 'playlist-event';
   wallCard?: WallCardData;
+  /** playlist-event: the hub entity the line links to */
+  entityId?: string;
 }
 
 export const initialMessages: ChatMessage[] = [

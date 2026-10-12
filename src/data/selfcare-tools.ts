@@ -52,8 +52,8 @@ export const SELFCARE_TOOLS: SelfcareTool[] = [
   {
     id: 'ground',
     glyphColor: '#4E8F3D',
-    label: 'Distract me',
-    sub: 'A little scavenger hunt',
+    label: 'Back to your senses',
+    sub: 'A 2-minute senses hunt',
     bg: '#F4FBE8',
     scribble: Scribbles.greenSwoosh,
     scribbleTint: '#5FA74B',
@@ -82,8 +82,8 @@ export const CALM_TOOLS: SelfcareTool[] = [
   {
     id: 'ground',
     glyphColor: '#4E8F3D',
-    label: '5-4-3-2-1',
-    sub: 'Ground yourself with your senses',
+    label: 'Back to your senses',
+    sub: '5 you see, 4 you touch… ~2 min',
     bg: '#F4FBE8',
     scribble: Scribbles.greenSwoosh,
     scribbleTint: '#5FA74B',

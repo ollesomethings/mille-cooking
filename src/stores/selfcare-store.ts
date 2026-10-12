@@ -8,6 +8,8 @@ import { create } from 'zustand';
 interface SelfcareState {
   ventText: string;
   setVentText: (t: string) => void;
+  ventPromptId: string | null;
+  setVentPromptId: (id: string | null) => void;
   /** Teen chose "Share with {mentor} for when they're back" */
   ventShared: boolean;
   setVentShared: (b: boolean) => void;
@@ -25,6 +27,8 @@ interface SelfcareState {
 export const useSelfcareStore = create<SelfcareState>(set => ({
   ventText: '',
   setVentText: ventText => set({ ventText }),
+  ventPromptId: null,
+  setVentPromptId: ventPromptId => set({ ventPromptId }),
   ventShared: false,
   setVentShared: ventShared => set({ ventShared }),
   reminderSet: false,
@@ -36,6 +40,7 @@ export const useSelfcareStore = create<SelfcareState>(set => ({
   reset: () =>
     set({
       ventText: '',
+      ventPromptId: null,
       ventShared: false,
       reminderSet: false,
       notAloneIntroSeen: false,

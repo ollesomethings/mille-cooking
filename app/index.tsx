@@ -4,6 +4,7 @@ import { FabMenu } from '@/components/fab-menu';
 import { HubTab } from '@/components/hub-tab';
 import { TopHeader } from '@/components/top-header';
 import { FlightOverlay } from '@/components/proto/flight-overlay';
+import { HubCoachmark } from '@/components/proto/hub-coachmark';
 import { ScenarioPicker } from '@/components/proto/scenario-picker';
 import { WallNudge } from '@/components/wall/wall-nudge';
 import { scenario } from '@/data/scenario';
@@ -67,8 +68,12 @@ export default function Home() {
 function HomePager() {
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const ollesVersion = useScenarioStore(s => s.ollesVersion);
   const [index, setIndex] = useState(CHAT);
   const pagerRef = useRef<ScrollView>(null);
+  // Coach-mark anchors: the pager root and the header's "Your space" pill
+  const rootRef = useRef<View>(null);
+  const spacePillRef = useRef<View>(null);
 
   // Desktop reviewers navigate the pager by mouse click-and-drag
   useHorizontalDragScroll(pagerRef, node => node.clientWidth);
@@ -101,6 +106,12 @@ function HomePager() {
     if (hubRequest) goTo(HUB);
   }, [hubRequest, goTo]);
 
+  // Playlist "say it in chat" jumps land on the chat pane
+  const chatRequest = useNavStore(s => s.chatRequest);
+  useEffect(() => {
+    if (chatRequest) goTo(CHAT);
+  }, [chatRequest, goTo]);
+
   // react-native-web never fires onMomentumScrollEnd (ScrollViewBase only
   // forwards onScroll), so track the page from scroll position instead —
   // works on native too.
@@ -116,7 +127,7 @@ function HomePager() {
   );
 
   return (
-    <View className="flex-1 bg-white">
+    <View ref={rootRef} className="flex-1 bg-white">
       <ScrollView
         ref={pagerRef}
         horizontal
@@ -139,7 +150,9 @@ function HomePager() {
       </ScrollView>
 
       <View
-        className="absolute left-0 right-0 top-0 bg-white"
+        className="absolute left-0 right-0 top-0"
+        // Masks scrolled content behind the header — matches each pane's canvas
+        style={{ backgroundColor: index === HUB ? '#EAF1FC' : '#FFFFFF' }}
         pointerEvents="box-none"
       >
         <TopHeader
@@ -150,10 +163,18 @@ function HomePager() {
             if (index !== CHAT) goTo(CHAT);
             else router.push('/resources');
           }}
+          spacePillRef={spacePillRef}
         />
       </View>
 
-      {index === HUB && <FabMenu />}
+      <HubCoachmark
+        chatActive={index === CHAT}
+        hubActive={index === HUB}
+        rootRef={rootRef}
+        pillRef={spacePillRef}
+      />
+
+      {index === HUB && !ollesVersion && <FabMenu />}
 
       {index === CHAT && scenario.showWallNudge && <WallNudge />}
       <WallOverlay />

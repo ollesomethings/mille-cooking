@@ -10,6 +10,13 @@ import {
 
 let nextId = 100;
 
+declare global {
+  interface Window {
+    /** Headless-verification hook: the chat store, dev builds only */
+    __app?: typeof useAppStore;
+  }
+}
+
 const mentorReplies = [
   'love that!!',
   'ok that is actually amazing',
@@ -25,7 +32,10 @@ interface AppState {
   pushMentorReply: () => void;
   pushMentorMessage: (text: string) => void;
   pushWallCard: (card: WallCardData) => void;
-  addSystemMessage: (text: string, kind?: ChatMessage['kind']) => void;
+  addSystemMessage: (text: string, kind?: ChatMessage['kind'], entityId?: string) => void;
+  /** Prefilled chat input ("wait you like this??" jumps from a playlist) */
+  chatDraft: string | null;
+  setChatDraft: (text: string | null) => void;
   startMentorSwap: () => void;
   startTeenSwap: (promptTitle: string, promptSubtitle: string) => void;
   addTeenPhoto: (uri: string) => void;
@@ -77,11 +87,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  addSystemMessage: (text, kind) => {
+  addSystemMessage: (text, kind, entityId) => {
     set(s => ({
-      messages: [...s.messages, { id: `m${nextId++}`, from: 'system', text, kind }],
+      messages: [...s.messages, { id: `m${nextId++}`, from: 'system', text, kind, entityId }],
     }));
   },
+
+  chatDraft: null,
+  setChatDraft: chatDraft => set({ chatDraft }),
 
   startMentorSwap: () => {
     set({
@@ -129,3 +142,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 }));
+
+if (typeof window !== 'undefined' && __DEV__) {
+  window.__app = useAppStore;
+}

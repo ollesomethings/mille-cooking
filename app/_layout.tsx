@@ -17,6 +17,10 @@ import {
   SafeAreaProvider,
 } from 'react-native-safe-area-context';
 
+import { useScenarioStore } from '@/stores/scenario-store';
+import { useEffect } from 'react';
+import { usePathname } from 'expo-router';
+
 // Set by src/web/app-shell.ts when the desktop phone frame is active —
 // fakes iPhone insets so content clears the Dynamic Island / home indicator.
 const frameInsets =
@@ -28,6 +32,9 @@ SplashScreen.preventAutoHideAsync();
 LogBox.ignoreAllLogs(true);
 
 export default function RootLayout() {
+  const pathname = usePathname();
+  const scenarioMode = useScenarioStore(s => s.mode);
+
   const [fontsLoaded] = useFonts({
     'TWKLausanne-400': require('@assets/fonts/TWKLausanne-400.ttf'),
     'TWKLausanne-400Italic': require('@assets/fonts/TWKLausanne-400Italic.ttf'),
@@ -37,6 +44,13 @@ export default function RootLayout() {
     'CedarvilleCursive-Regular': require('@assets/fonts/CedarvilleCursive-Regular.ttf'),
     Caveat_600SemiBold,
   });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isScenarioPicker = pathname === '/' && !scenarioMode;
+      (window as any).__setPhoneFrame?.(!isScenarioPicker);
+    }
+  }, [pathname, scenarioMode]);
 
   if (!fontsLoaded) {
     return <View className="flex-1 bg-white" />;
@@ -106,6 +120,14 @@ export default function RootLayout() {
             <Stack.Screen
               name="hub/story/[id]"
               options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+            />
+            <Stack.Screen
+              name="hub/playlist/[id]"
+              options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+            />
+            <Stack.Screen
+              name="hub/create-playlist"
+              options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
             />
             <Stack.Screen
               name="resources"

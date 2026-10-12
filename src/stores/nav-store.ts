@@ -12,12 +12,20 @@ import { create } from 'zustand';
  * HubTab tracks the plain home_entry arrivals itself, skipping activations
  * a fresh request just caused (the `at` timestamp).
  */
-export type HubSource = 'home_entry' | 'offline_pointer' | 'tool_exit' | 'chat_hint';
+export type HubSource =
+  | 'home_entry'
+  | 'offline_pointer'
+  | 'tool_exit'
+  | 'chat_hint'
+  | 'coachmark';
 
 interface NavState {
   /** Pending "go to the hub" request; id bumps so repeats re-trigger */
   hubRequest: { source: HubSource; id: number; at: number } | null;
   requestHub: (source: HubSource) => void;
+  /** Pending "go to chat" request (playlist → "say it in chat" jumps) */
+  chatRequest: { id: number } | null;
+  requestChat: () => void;
 }
 
 export const useNavStore = create<NavState>(set => ({
@@ -28,4 +36,7 @@ export const useNavStore = create<NavState>(set => ({
       hubRequest: { source, id: (s.hubRequest?.id ?? 0) + 1, at: Date.now() },
     }));
   },
+  chatRequest: null,
+  requestChat: () =>
+    set(s => ({ chatRequest: { id: (s.chatRequest?.id ?? 0) + 1 } })),
 }));

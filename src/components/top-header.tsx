@@ -4,16 +4,20 @@ import { useWallStore } from '@/stores/wall-store';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight, Settings, ShieldCheck, Sparkles } from 'lucide-react-native';
+import type { RefObject } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 export function TopHeader({
   tab,
   onPressLeft,
   onOpenSpace,
+  spacePillRef,
 }: {
   tab: 'corner' | 'chat' | 'hub';
   onPressLeft: () => void;
   onOpenSpace: () => void;
+  /** Measured by the Hub coach mark to spotlight the pill */
+  spacePillRef?: RefObject<View | null>;
 }) {
   const router = useRouter();
   const openPanel = useWallStore(s => s.openPanel);
@@ -70,17 +74,19 @@ export function TopHeader({
       <View className="flex-row items-center" style={{ gap: 4 }}>
         {/* Entry into the Hub (the teen's space) — hidden while already there */}
         {tab !== 'hub' && (
-          <PressableScale
-            onPress={onOpenSpace}
-            className="flex-row items-center rounded-full border border-[#E5E0D8] bg-white px-3"
-            style={{ height: 40, gap: 6 }}
-            hitSlop={6}
-          >
-            <Sparkles size={15} color="#1F1E1D" strokeWidth={1.8} />
-            <Text className="font-avantt-bold text-primary" style={{ fontSize: 13 }}>
-              Your space
-            </Text>
-          </PressableScale>
+          <View ref={spacePillRef} collapsable={false}>
+            <PressableScale
+              onPress={onOpenSpace}
+              className="flex-row items-center rounded-full border border-[#E5E0D8] bg-white px-3"
+              style={{ height: 40, gap: 6 }}
+              hitSlop={6}
+            >
+              <Sparkles size={15} color="#1F1E1D" strokeWidth={1.8} />
+              <Text className="font-avantt-bold text-primary" style={{ fontSize: 13 }}>
+                Your space
+              </Text>
+            </PressableScale>
+          </View>
         )}
         <PressableScale
           onPress={() => router.push('/profile')}

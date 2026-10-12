@@ -104,6 +104,13 @@ export function FabMenu() {
       infoKind: 'moment',
       onPress: r => r.push('/hub/share-moment'),
     },
+    {
+      id: 'playlist',
+      label: 'Make a playlist',
+      subLabel: 'Share your taste',
+      emoji: '🎧',
+      onPress: r => r.push('/hub/create-playlist'),
+    },
   ];
 
   const handleOption = (option: FabOption) => {

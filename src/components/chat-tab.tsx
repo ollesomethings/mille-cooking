@@ -135,11 +135,13 @@ function MessageRow({
   index,
   messages,
   onOpenSwap,
+  onOpenPlaylist,
 }: {
   item: ChatMessage;
   index: number;
   messages: ChatMessage[];
   onOpenSwap: () => void;
+  onOpenPlaylist: () => void;
 }) {
   if (item.kind === 'goal-nudge') {
     return <GoalNudgeCard />;
@@ -171,6 +173,36 @@ function MessageRow({
         <Text className="text-geist text-tertiary mt-1" style={{ fontSize: 10 }}>
           {card.footer}
         </Text>
+      </View>
+    );
+  }
+
+  if (item.kind === 'playlist-event' && item.entityId) {
+    return (
+      <View className="my-3 items-center">
+        <Pressable
+          onPress={onOpenPlaylist}
+          className="flex-row items-center active:opacity-60"
+          style={{ minHeight: 44 }}
+          hitSlop={4}
+        >
+          <View className="mr-2 h-6 w-6 items-center justify-center rounded-full bg-brand-lime/40">
+            {/* tiny vinyl */}
+            <View className="h-3.5 w-3.5 items-center justify-center rounded-full bg-brand-trueBlack">
+              <View className="h-1.5 w-1.5 rounded-full bg-brand-lime" />
+            </View>
+          </View>
+          <Text className="text-body-3 text-secondary">
+            {item.text.endsWith('a playlist') ? (
+              <>
+                {item.text.replace(' a playlist', '')} a{' '}
+                <Text className="text-body-3 text-primary font-avantt">Playlist</Text>
+              </>
+            ) : (
+              item.text
+            )}
+          </Text>
+        </Pressable>
       </View>
     );
   }
@@ -318,6 +350,15 @@ export function ChatTab({ onOpenHub }: { onOpenHub: () => void }) {
 
   const [draft, setDraft] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Playlist "say it in chat" jumps prefill the input — theirs to edit/send
+  const chatDraft = useAppStore(s => s.chatDraft);
+  useEffect(() => {
+    if (chatDraft) {
+      setDraft(chatDraft);
+      useAppStore.getState().setChatDraft(null);
+    }
+  }, [chatDraft]);
   const listRef = useRef<FlatList>(null);
   // Snapshot of the ids present at mount — see renderItem.
   const initialIds = useRef(new Set(messages.map(m => m.id))).current;
@@ -371,6 +412,9 @@ export function ChatTab({ onOpenHub }: { onOpenHub: () => void }) {
                 index={index}
                 messages={displayMessages}
                 onOpenSwap={openSwap}
+                onOpenPlaylist={() =>
+                  item.entityId && router.push(`/hub/playlist/${item.entityId}`)
+                }
               />
             </View>
           );

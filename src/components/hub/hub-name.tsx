@@ -13,7 +13,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 const MAX_NAME_LENGTH = 16;
 
-export function HubName() {
+export function HubName({ hero = false }: { hero?: boolean }) {
   const name = useHubStore(s => s.name);
   const setName = useHubStore(s => s.setName);
   const [editing, setEditing] = useState(false);
@@ -31,18 +31,26 @@ export function HubName() {
   };
 
   return (
-    <View className="items-center">
+    <View className={hero ? 'items-start' : 'items-center'}>
       <Pressable
         onPress={openEditor}
         className="flex-row items-center active:opacity-60"
         hitSlop={8}
       >
-        <Text className="text-header-3 text-primary text-center">
+        <Text
+          className={hero ? 'font-avantt-bold text-primary' : 'text-header-3 text-primary text-center'}
+          style={hero ? { fontSize: 36, lineHeight: 42 } : undefined}
+        >
           {name || 'Your hub'}
         </Text>
-        <Pencil size={14} color="#8A857C" strokeWidth={2} style={{ marginLeft: 6 }} />
+        <Pencil
+          size={hero ? 17 : 14}
+          color="#8A857C"
+          strokeWidth={2}
+          style={{ marginLeft: hero ? 10 : 6 }}
+        />
       </Pressable>
-      <Text className="text-caption-1 text-tertiary mt-1">{hub.since}</Text>
+      {!hero && <Text className="text-caption-1 text-tertiary mt-1">{hub.since}</Text>}
 
       <Modal visible={editing} transparent animationType="fade">
         <Pressable

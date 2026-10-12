@@ -1,4 +1,5 @@
 import { hubPhotos, mentor, teen } from '@/data/mock';
+import { MENTOR_FIRST_PLAYLIST, type PlaylistData } from '@/data/playlists';
 
 /**
  * Prototype mirror of the real app's ShareableEntity
@@ -6,7 +7,7 @@ import { hubPhotos, mentor, teen } from '@/data/mock';
  * hub grid renders. Swaps created in the prototype's swap flow live in
  * app-store.hubSwaps and are merged in by the hub tab.
  */
-export type HubEntityType = 'note' | 'moment' | 'swap' | 'story';
+export type HubEntityType = 'note' | 'moment' | 'swap' | 'story' | 'playlist';
 
 export interface StoryImage {
   url: string;
@@ -38,6 +39,8 @@ export interface HubEntity {
   };
   /** Mentor-authored, read-only in the real app */
   story?: { images: StoryImage[] };
+  /** Shared taste — see src/data/playlists.ts */
+  playlist?: PlaylistData;
 }
 
 // Verbatim from mono/link-v2 app/hub/welcome-note.tsx (typos included).
@@ -116,6 +119,15 @@ export const hubEntities: HubEntity[] = [
       content:
         "today was actually okay. didn't think it would be.\n\nkinda proud of myself for just showing up.",
     },
+  },
+  {
+    // The mentor's first playlist — auto-delivered on match, like the
+    // welcome note. The start of the relationship, so it sits with it.
+    id: 'entity-playlist-first',
+    entityType: 'playlist',
+    owner: { name: mentor.name, avatar: mentor.avatar, role: 'mentor' },
+    createdAt: 'Since day one',
+    playlist: { ...MENTOR_FIRST_PLAYLIST, reactions: {} },
   },
   {
     id: 'entity-note-welcome',
